@@ -1,0 +1,107 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<title>DFMG Station Availability — Week 21, 2026 (May 18 → May 24) · UTC</title>
+<style>
+ :root {
+   --bg:#0d0f12; --panel:#161a20; --panel2:#1c2128; --border:#252b33;
+   --text:#e6e8ec; --muted:#8a93a0;
+ }
+ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        margin:0; padding:24px; font-size:13px; }
+ .badge { display:inline-block; padding:3px 8px; background:#3b1f6b; color:#c9b6ff;
+          font-size:10px; letter-spacing:0.1em; font-weight:600; border-radius:3px; margin-right:14px; }
+ .title { font-size:13px; color:var(--muted); letter-spacing:0.08em; font-weight:600; }
+ .legend { display:inline-block; margin-left:20px; font-size:11px; color:var(--muted); }
+ .legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+
+ /* ── Row 1: 5 horizontal KPI panels ── */
+ .row1 { display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; margin-top:18px; }
+ .row1 .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px; }
+ .row1 .kpi-label { color:var(--muted); font-size:10px; letter-spacing:0.1em; font-weight:600; }
+ .row1 .kpi-value { font-size:30px; font-weight:700; margin-top:8px; line-height:1.05; }
+ .row1 .kpi-sub { color:var(--muted); font-size:10px; margin-top:8px; }
+
+ h2 { font-size:11px; color:var(--muted); letter-spacing:0.12em; font-weight:700; margin:28px 0 10px; }
+ .section-sub { color:var(--muted); font-size:11px; margin-bottom:12px; }
+
+ /* ── Metric blocks ── */
+ .metric-block { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; margin-bottom:14px; }
+ .metric-header { display:flex; align-items:center; margin-bottom:10px; }
+ .metric-title { font-size:13px; font-weight:700; }
+ .metric-tag { background:var(--panel2); padding:3px 8px; border-radius:3px; font-size:10px; color:var(--muted); margin-left:10px; }
+ .metric-spark { display:flex; gap:8px; margin-left:auto; align-items:center; }
+ .spark-tile { background:var(--panel2); padding:6px 10px; border-radius:4px; min-width:80px; }
+ .spark-tile .l { color:var(--muted); font-size:9px; letter-spacing:0.06em; }
+ .spark-tile .v { font-size:14px; font-weight:700; margin-top:1px; }
+
+ /* ── Compressed 2-column station rows ── */
+ .stations-grid { display:grid; grid-template-columns: 1fr 1fr; gap:4px 16px; margin-top:8px; }
+ .station-row { display:grid; grid-template-columns: 90px 1fr 70px 230px; gap:8px; align-items:center;
+                 padding:5px 8px; border-radius:3px; font-size:11px; }
+ .station-row:hover { background:var(--panel2); }
+ .station-row .nm { font-family: "SF Mono", Menlo, monospace; font-size:10.5px; color:#c8ced8; }
+ .station-row .barwrap { background:#0f1218; border-radius:2px; height:12px; position:relative; overflow:hidden; }
+ .station-row .barwrap .bar { position:absolute; left:0; top:0; bottom:0; }
+ .station-row .pct { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+ .station-row .timing { color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+ .station-row .timing .up { color:#7fbf99; }
+ .station-row .timing .dn { color:#e88c1a; margin-left:10px; }
+ .station-row .timing .dn.zero { color:#5a6470; }
+
+ .empty { color:var(--muted); padding:10px; font-size:11px; }
+ .footer { color:var(--muted); font-size:10px; margin-top:24px; }
+</style>
+</head><body>
+
+<div>
+  <span class="badge">DFMG · WEEKLY</span>
+  <span class="title">DFMG STATION AVAILABILITY · Week 21, 2026 (May 18 → May 24) · UTC</span>
+  <span class="legend">
+    <span style="background:#1ec773"></span>&gt; 99.95%
+    <span style="background:#26d97f"></span>99.90–99.95%
+    <span style="background:#d9c623"></span>99.00–99.90%
+    <span style="background:#e88c1a"></span>95.00–99.00%
+    <span style="background:#e64646"></span>&lt; 95.00%
+  </span>
+</div>
+
+<div class="row1">
+  <div class="panel">
+    <div class="kpi-label">WEEKLY AVAILABILITY</div>
+    <div class="kpi-value" style="color:#e88c1a">96.000%</div>
+    <div class="kpi-sub">25 stations · DFMG / EU</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">HAD DOWNTIME</div>
+    <div class="kpi-value" style="color:#e88c1a">1 <span style="color:var(--muted);font-size:18px">/ 25</span></div>
+    <div class="kpi-sub">stations affected</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">TOTAL DOWNTIME</div>
+    <div class="kpi-value" style="color:#e64646">6d 22h 49m</div>
+    <div class="kpi-sub">sum across DFMG stations</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">DOWNTIME %</div>
+    <div class="kpi-value" style="color:#d9c623">4.000%</div>
+    <div class="kpi-sub">100% − availability</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">DATA WINDOW</div>
+    <div style="font-size:13px;font-weight:600;margin-top:8px;line-height:1.4">
+      2026-05-18 00:00 UTC<br/>→ 2026-05-25 00:00 UTC
+    </div>
+    <div class="kpi-sub" style="margin-top:8px">60s step · 7 day(s)</div>
+  </div>
+</div>
+
+<h2>METRIC BREAKDOWN · per metric · DFMG stations in EU · uptime vs downtime</h2>
+<div class="section-sub">All DFMG stations · sorted worst-first within each metric</div>
+
+<div class="metric-block"><div class="metric-header"><div class="metric-title">SAR Connection Online</div><div class="metric-tag">sar_status_connection_online</div><div class="metric-spark"><div class="spark-tile"><div class="l">STATIONS</div><div class="v">25</div></div></div></div><div class="stations-grid"><div class="station-row"><div class="nm">DTD20xDEU</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">up 0m</span><span class="dn">down 6d 22h 49m</span></div></div><div class="station-row"><div class="nm">DTBA0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTBN0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTBR0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTDD0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTDT0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTFB0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTGB0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTHL0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTHR0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTHT0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTIF0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTKM0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTMB0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTMH0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTND0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTOB0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTOS0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTPW0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTSW0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTVD0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTVR0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTWL0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTWR0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">DTZU0xDEU</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 6d 22h 49m</span><span class="dn zero">down 0m</span></div></div></div></div><div class="metric-block"><div class="metric-header"><div class="metric-title">Adel Infra UPS</div><div class="metric-tag">power_management_dcups</div><div class="metric-spark"><div class="spark-tile"><div class="l">STATIONS</div><div class="v">1</div></div></div></div><div class="stations-grid"><div class="station-row"><div class="nm">DTDT</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 7d 7m</span><span class="dn zero">down 0m</span></div></div></div></div><div class="metric-block"><div class="metric-header"><div class="metric-title">NTRIP Client Throughput (diagnostic)</div><div class="metric-tag">rate(orion_ntrip_client_bytes_sum[5m])</div><div class="metric-spark"><div class="spark-tile"><div class="l">STATIONS</div><div class="v">23</div></div></div></div><div class="stations-grid"><div class="station-row"><div class="nm">DTBA</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTBN</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTBR</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTDD</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTFB</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTGB</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTHL</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTHR</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTHT</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTIF</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTKM</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTMB</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTMH</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTND</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTOB</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTOS</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTPW</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTSW</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTVD</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTVR</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTWL</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTWR</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div><div class="station-row"><div class="nm">DTZU</div><div class="barwrap"><div class="bar" style="width:0.500%;background:#e64646"></div></div><div class="pct" style="color:#e64646">0.000%</div><div class="timing"><span class="up">avg 0 B/s · peak 0 B/s</span></div></div></div></div>
+
+<div class="footer">
+  Generated 2026-05-29 16:33 UTC · DFMG = Deutsche Funkturm · all stations EU/DEU · 7-day window @ 60s step
+</div>
+
+</body></html>
