@@ -1,0 +1,166 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<title>DFMG SAR Connection Availability — May 2026 · May 1 → May 31 · UTC</title>
+<style>
+ :root {
+   --bg:#0d0f12; --panel:#161a20; --panel2:#1c2128; --border:#252b33;
+   --text:#e6e8ec; --muted:#8a93a0;
+ }
+ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        margin:0; padding:24px; font-size:13px; }
+ .badge { display:inline-block; padding:3px 8px; background:#3b1f6b; color:#c9b6ff;
+          font-size:10px; letter-spacing:0.1em; font-weight:600; border-radius:3px; margin-right:14px; }
+ .title { font-size:13px; color:var(--muted); letter-spacing:0.08em; font-weight:600; }
+ .legend { display:inline-block; margin-left:20px; font-size:11px; color:var(--muted); }
+ .legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+
+ /* Row 1: 4 horizontal KPI panels */
+ .row1 { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:18px; }
+ .row1 .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px; }
+ .row1 .kpi-label { color:var(--muted); font-size:10px; letter-spacing:0.1em; font-weight:600; }
+ .row1 .kpi-value { font-size:30px; font-weight:700; margin-top:8px; line-height:1.05; }
+ .row1 .kpi-sub { color:var(--muted); font-size:10px; margin-top:8px; }
+
+ /* Row 1B: single full-width station health panel */
+ .row1b { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
+ .row1b .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; }
+ .row1b .header { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+ .row1b .title { font-size:12px; font-weight:700; letter-spacing:0.06em; }
+ .row1b .tag { background:var(--panel2); padding:2px 7px; border-radius:3px; font-size:10px; color:var(--muted); }
+ .row1b .total { margin-left:auto; color:var(--muted); font-size:10px; }
+ .row1b .stats { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+ .row1b .stat .lbl { color:var(--muted); font-size:10px; letter-spacing:0.06em; font-weight:600; }
+ .row1b .stat .val { font-size:22px; font-weight:700; margin-top:3px; }
+ .row1b .stat .ct  { color:var(--muted); font-size:10px; margin-top:2px; }
+ .row1b .stat .lst { margin-top:8px; font-size:10px; line-height:1.5;
+                      max-height:80px; overflow-y:auto;
+                      font-family:"SF Mono", Menlo, monospace; color:#c8ced8; word-break:break-word; }
+ .row1b .stat .lst.dn { color:#e88c1a; }
+ .row1b .stat .lst.empty { color:#5a6470; font-style:italic; }
+
+ /* Silent stations panel — between row1b and metric breakdown */
+ .silent-panel { background:var(--panel); border:1px solid var(--border); border-left:3px solid #c97a1f;
+                  border-radius:6px; padding:14px 18px; margin-top:14px; }
+ .silent-panel .head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
+ .silent-panel .title { font-size:12px; font-weight:700; letter-spacing:0.06em; color:#e8b069; }
+ .silent-panel .count { background:#2b2218; color:#e8b069; padding:2px 8px; border-radius:3px;
+                         font-size:11px; font-weight:600; }
+ .silent-panel .sub { color:var(--muted); font-size:11px; margin-bottom:10px; }
+ .silent-panel .lst { font-family:"SF Mono", Menlo, monospace; font-size:11px; line-height:1.7;
+                       color:#c8ced8; word-break:break-word; }
+ .silent-panel .station { display:inline-block; background:var(--panel2); padding:2px 8px;
+                           border-radius:3px; margin:2px 4px 2px 0; color:#e8b069; }
+ .silent-panel .none { color:#5a6470; font-style:italic; }
+
+ /* Section dividers inside the per-station grid */
+ .section-divider { display:flex; align-items:center; gap:10px; margin:14px 0 8px; }
+ .section-divider::before, .section-divider::after {
+   content:""; flex:1; height:1px;
+ }
+ .section-divider .lbl { font-size:10px; font-weight:700; letter-spacing:0.1em;
+                          padding:2px 10px; border-radius:3px; }
+ .section-divider.silent .lbl  { color:#e8b069; background:rgba(232,176,105,0.10); }
+ .section-divider.silent::before, .section-divider.silent::after {
+   background:linear-gradient(to right, transparent, rgba(232,176,105,0.35), transparent);
+ }
+ .section-divider.nonprod .lbl { color:#8a93a0; background:rgba(138,147,160,0.08); }
+ .section-divider.nonprod::before, .section-divider.nonprod::after {
+   background:linear-gradient(to right, transparent, rgba(138,147,160,0.25), transparent);
+ }
+
+ /* Silent remark table */
+ .silent-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:11px; }
+ .silent-table thead th { text-align:left; color:var(--muted); font-size:9px; font-weight:700;
+                            letter-spacing:0.08em; padding:6px 10px;
+                            border-bottom:1px solid var(--border); background:var(--panel2); }
+ .silent-table tbody td { padding:6px 10px; border-bottom:1px solid #1f242b; vertical-align:top; }
+ .silent-table tbody tr:hover { background:var(--panel2); }
+ .silent-table .silent-name { font-family:"SF Mono", Menlo, monospace; color:#e8b069;
+                                font-weight:600; white-space:nowrap; width:130px; }
+ .silent-table .silent-remark { color:#c8ced8; font-family:-apple-system,BlinkMacSystemFont,
+                                  "Segoe UI",Roboto,sans-serif; line-height:1.5; }
+
+ h2 { font-size:11px; color:var(--muted); letter-spacing:0.12em; font-weight:700; margin:28px 0 10px; }
+ .section-sub { color:var(--muted); font-size:11px; margin-bottom:12px; }
+
+ /* Metric block — single SAR block */
+ .metric-block { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; margin-bottom:14px; }
+ .metric-header { display:flex; align-items:center; margin-bottom:10px; }
+ .metric-title { font-size:13px; font-weight:700; }
+ .metric-tag { background:var(--panel2); padding:3px 8px; border-radius:3px; font-size:10px; color:var(--muted); margin-left:10px; }
+ .metric-spark { display:flex; gap:8px; margin-left:auto; align-items:center; }
+ .spark-tile { background:var(--panel2); padding:6px 10px; border-radius:4px; min-width:80px; }
+ .spark-tile .l { color:var(--muted); font-size:9px; letter-spacing:0.06em; }
+ .spark-tile .v { font-size:14px; font-weight:700; margin-top:1px; }
+
+ .stations-grid { display:grid; grid-template-columns: 1fr 1fr; gap:4px 16px; margin-top:8px; }
+ .station-row { display:grid; grid-template-columns: 90px 1fr 70px 230px; gap:8px; align-items:center;
+                 padding:5px 8px; border-radius:3px; font-size:11px; }
+ .station-row:hover { background:var(--panel2); }
+ .station-row .nm { font-family: "SF Mono", Menlo, monospace; font-size:10.5px; color:#c8ced8; }
+ .station-row .barwrap { background:#0f1218; border-radius:2px; height:12px; position:relative; overflow:hidden; }
+ .station-row .barwrap .bar { position:absolute; left:0; top:0; bottom:0; }
+ .station-row .pct { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+ .station-row .timing { color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+ .station-row .timing .up { color:#7fbf99; }
+ .station-row .timing .dn { color:#e88c1a; margin-left:10px; }
+ .station-row .timing .dn.zero { color:#5a6470; }
+
+ .empty { color:var(--muted); padding:10px; font-size:11px; }
+ .footer { color:var(--muted); font-size:10px; margin-top:24px; }
+</style>
+</head><body>
+
+<div>
+  <span class="badge">DFMG · SAR · MONTHLY</span>
+  <span class="title">DFMG SAR CONNECTION AVAILABILITY · May 2026 · May 1 → May 31 · UTC</span>
+  <span class="legend">
+    <span style="background:#1ec773"></span>&gt; 99.95%
+    <span style="background:#26d97f"></span>99.90–99.95%
+    <span style="background:#d9c623"></span>99.00–99.90%
+    <span style="background:#e88c1a"></span>95.00–99.00%
+    <span style="background:#e64646"></span>&lt; 95.00%
+  </span>
+</div>
+
+<div class="row1">
+  <div class="panel">
+    <div class="kpi-label">MAY 2026 AVAILABILITY</div>
+    <div class="kpi-value" style="color:#e64646">0.000%</div>
+    <div class="kpi-sub">0 stations · DFMG / EU · SAR only</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">HAD DOWNTIME</div>
+    <div class="kpi-value" style="color:#e88c1a">0 <span style="color:var(--muted);font-size:18px">/ 0</span></div>
+    <div class="kpi-sub">stations affected</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">DOWNTIME %</div>
+    <div class="kpi-value" style="color:#d9c623">100.000%</div>
+    <div class="kpi-sub">100% − availability</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label">DATA WINDOW</div>
+    <div style="font-size:13px;font-weight:600;margin-top:8px;line-height:1.4">
+      2026-05-01 00:00 UTC<br/>→ 2026-06-01 00:00 UTC
+    </div>
+    <div class="kpi-sub" style="margin-top:8px">60s step · 31 day(s)</div>
+  </div>
+</div>
+
+<div class="row1b">
+  <div class="panel">  <div class="header">    <div class="title">SAR Station Health</div>    <div class="tag">sar_status_connection_online</div>    <div class="total">0 stations</div>  </div>  <div class="stats">    <div class="stat">      <div class="lbl">UPTIME</div>      <div class="val" style="color:#1ec773">0.000%</div>      <div class="ct">0 / 0 stations · no downtime in window</div>      <div class="lst empty">(none)</div>    </div>    <div class="stat">      <div class="lbl">DOWNTIME</div>      <div class="val" style="color:#5a6470">0.000%</div>      <div class="ct">0 / 0 stations · had any downtime</div>      <div class="lst dn empty">(none — all up)</div>    </div>  </div></div>
+</div>
+
+<h2>UPTIME AND DOWNTIME OF STATIONS</h2>
+<div class="section-sub">All DFMG stations · sorted worst-first · see SILENT STATIONS below for per-station diagnostic remarks</div>
+
+<div class="metric-block"><div class="metric-header"><div class="metric-title">SAR Connection Online</div><div class="metric-tag">sar_status_connection_online</div><div class="metric-spark"><div class="spark-tile"><div class="l">STATIONS</div><div class="v">0</div></div></div></div><div class="empty">no SAR data in this window</div></div>
+
+<div class="silent-panel">  <div class="head"><div class="title">SILENT STATIONS</div></div>  <div class="sub none">orion CORS obs query failed — cross-match unavailable for this run</div></div>
+
+<div class="footer">
+  Generated 2026-06-03 21:59 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 31-day window @ 60s step
+</div>
+
+</body></html>
