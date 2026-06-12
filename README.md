@@ -159,21 +159,40 @@ station-availability/cache/
 └── sar_daily_dfmg_2026-05-31.json
 ```
 
-### Cache schema (v1)
+### Cache schema (v2)
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "partner": "DFMG",
   "window": {"start": "2026-05-01T00:00:00+00:00", "end": "2026-05-02T00:00:00+00:00"},
   "sar_agg_prod": { "<site>": {"name", "country", "region", "up_s", "down_s", "missing_s"} },
-  "emergency_data": { "<site>": {"source", "duration_s", "events", "currently_on_battery",
-                                  "outage_windows", "battery_runtime_s", "duration_uncertain"} },
+  "emergency_data": {
+    "<site>": {
+      "source": "adel" | "backups-pro",
+      "duration_s": ...,
+      "events": ...,
+      "currently_on_battery": ...,
+      "outage_windows": [[ts_start, ts_end], ...],
+      "battery_runtime_s": ...,
+      "raw_events": {
+        "backup":    [ts, ts, ...],   // INFRA-LITE counter increments (timestamps)
+        "grid":      [ts, ts, ...],
+        "exhausted": [ts, ts, ...],
+        "good":      [ts, ts, ...]
+      }
+    }
+  },
   "adel_sites": [...],
   "nonprod_global": [...],
   "metadata": {"generated_at", "n_production_sites", "n_emergency_data_sites", "step_seconds_used"}
 }
 ```
+
+**What changed in v2 (2026-06-13):**
+- `raw_events` added — stores per-site counter-increment timestamps so the weekly/monthly merger can **re-pair backup→grid events across day boundaries** (fixes the cross-midnight outage undercount).
+- `duration_uncertain` removed from cache — spurious correction is now applied at **merge/render time** using window-end `recent_silent`, not baked in per-day. This means a site flagged "uncertain" on day N can be correctly reclassified on a weekly/monthly view if window-end evidence differs.
+- Schema-version reader is strict: any v1 cache is logged as schema-drift and ignored — run `--rebuild-cache` to refresh.
 
 ### Storage footprint
 
@@ -187,14 +206,30 @@ Trivial. Local-only storage; no remote backup needed.
 ### What the hybrid actually does at run time
 
 For **daily** mode:
-1. Existing fetch + spurious correction + battery_runtime
-2. `write_daily_cache(...)` at the end
+1. Fetch raw event timestamps + per-day outage windows
+2. Compute `battery_runtime_s`
+3. Write RAW v2 cache (no spurious correction baked in)
+4. Apply spurious-correction + station-dark classifier in-memory using day-end `recent_silent`
+5. Render with the corrected view
 
 For **weekly / monthly** mode (`hybrid_fetch_emergency_power`):
 1. Walk every day in the window
 2. For each cached date → load from disk (~<1 ms each)
-3. For each missing date → query Prometheus for just that day at 60s step, apply spurious correction + battery_runtime, write a gap-fill cache
-4. Merge per-day `emergency_data` dicts (sum durations, concat outage windows, OR `duration_uncertain` flags, take latest day's `currently_on_battery`)
+3. For each missing date → query Prometheus for that day, write a gap-fill v2 cache
+4. **Re-pair INFRA-LITE backup/grid events across the FULL window** (so a 23:55→02:30 outage is one continuous duration, not two split sub-day fragments)
+5. Merge contiguous Adel outage windows (catches Adel cross-midnight too)
+6. Apply spurious-correction + station-dark classifier using **window-end** `recent_silent`
+
+### Battery-exhausted + station-dark classification (new 2026-06-13)
+
+Two distinct cases used to collapse into `duration_uncertain`:
+
+| Pattern | OLD classification | NEW classification |
+|---|---|---|
+| Unpaired `backup_battery` alert + station still producing observations | `duration_uncertain` (excluded from totals) | `duration_uncertain` (excluded from totals) — unchanged |
+| `battery_exhausted` ≥ 1 alert AND station is in `recent_silent` (no obs in last 24h) | `duration_uncertain` (excluded — data lost) | **`station_dark = True`** — duration capped at UPS battery life (Adel ~4 h / APC ~1 h), counted in totals |
+
+So an outage that exceeded UPS capacity (battery died, station went dark) now contributes a realistic duration based on hardware battery-life limits, instead of being silently dropped. Recovers signal we previously threw away.
 
 ### What is NOT cached (still hits Prometheus on every weekly/monthly run)
 
@@ -216,11 +251,72 @@ The log line `[HEADLINE] Emergency power: N sites affected · D total on-battery
 
 | Run | Wall-clock | What hit Prometheus |
 |---|---|---|
-| Daily | ~30–40 s | All standard daily queries + cache write |
+| Daily | ~30–40 s | All standard daily queries + raw events fetch + cache write |
 | Weekly (all 7 days cached) | ~30 s | Everything except emergency_power |
 | Weekly (with gap-fill) | ~60 s | Standard + per-day emergency_power for missing days |
 | Monthly (all 31 days cached) | ~65–70 s | Everything except emergency_power |
 | Monthly (single-query, pre-hybrid) | ~3–5 min | Everything including 30-day SAR counter range query |
+
+---
+
+## Cache freshness & recovery (T-1 regen + `--rebuild-cache`)
+
+### Automatic T-1 sanity check
+
+At the start of every **daily** run (unless `--dry-run` or `--no-t1-regen`), the script checks yesterday's cache:
+
+- If the cache file is **missing** OR has fewer than **50 production sites** (suggests Prometheus had errors during yesterday's run), the script spawns a daily subprocess for yesterday with publish + Slack enabled.
+- The subprocess regenerates yesterday's cache, re-renders the HTML/CSV/PNG, and republishes — surfacing the "🔄 RE-RUN — corrected" version to Pages and Slack.
+- Recursion is prevented by passing `--no-t1-regen` to spawned subprocesses, so the chain caps at T-1 (one day). Deeper holes require the manual `--rebuild-cache` flag below.
+
+### Manual rebuild — `--rebuild-cache <SPEC>`
+
+Use when a known date range is bad (Prometheus retention rollover, cluster failover tail, lost upstream data, etc.).
+
+```bash
+# One specific day
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10
+
+# A whole month
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05
+
+# Last N days
+python3 dfmg_sar_availability.py --rebuild-cache 7d
+
+# Also republish the regenerated reports (default is cache-only, silent)
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05 --publish-rebuilds
+```
+
+Behaviour: deletes the existing cache for each affected date, spawns a daily subprocess with `--dry-run` (cache-only by default — no Slack spam), regenerates the v2 cache file. Adding `--publish-rebuilds` opts into Pages + Slack for each date (useful for backfilling one or two specific reports).
+
+---
+
+## Cluster-failover resilience
+
+### What happened 2026-06-10
+
+Swift's edge Thanos infrastructure flipped active/passive: **eu-prod-2 → passive, eu-prod-1 → active**. Confirmed via the AWS Route 53 mTLS casters dashboard at the time of the change. The passive cluster's Thanos receivers (`cluster="eu2"`) remained reachable for historical queries but with occasional `rpc error: code = Unavailable` warnings for adjacent timestamps.
+
+### Symptoms we hit
+
+- `power_management_dcups` instant queries returning **0 series** during certain windows, causing all Adel sites to silently misclassify as INFRA-LITE.
+- Roster + non-prod queries similarly flickered around the failover boundary.
+
+### Fixes (active 2026-06-13)
+
+| Query | Old | New | Why safe |
+|---|---|---|---|
+| `fetch_adel_equipped_sites` | instant query | `last_over_time[7d]` | Adel hardware-tier transitions are months-to-years scale |
+| `fetch_global_nonprod_sites` | instant query | `last_over_time[24h]` | `noc_status` changes are administrative (days-to-weeks scale) |
+
+### `[PROM-PASSIVE]` and `[PROM-WARN]` log tags
+
+`_instant_query` and the v2 raw-events range query both extract Prometheus' `warnings` field from the response and log them as `WARNING`:
+
+- `[PROM-PASSIVE]` — warnings that reference a known passive Thanos cluster (`cluster="eu2"` in the current topology). Flagged distinctly so operators can spot them in the monitor.
+- `[PROM-WARN]` — any other Prometheus warning (typically dev or transient backend issues).
+
+If the passive cluster set changes, update `PASSIVE_THANOS_CLUSTERS = {"eu2"}` at the top of the cache section in `dfmg_sar_availability.py`.
 
 ---
 
@@ -299,9 +395,28 @@ python3 dfmg_sar_availability.py --mode weekly  --date 2026-W21
 python3 dfmg_sar_availability.py --mode monthly --date 2026-04
 
 # Opt-outs
-python3 dfmg_sar_availability.py --mode daily --dry-run      # skip Pages push + Slack
-python3 dfmg_sar_availability.py --mode daily --no-slack     # push to Pages, skip Slack
+python3 dfmg_sar_availability.py --mode daily --dry-run            # skip Pages push + Slack
+python3 dfmg_sar_availability.py --mode daily --no-slack           # push to Pages, skip Slack
+python3 dfmg_sar_availability.py --mode daily --no-t1-regen        # skip T-1 auto-regen
+
+# Manual cache recovery
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10        # one day, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05           # whole month, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 7d                # last 7 days, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10 --publish-rebuilds  # republish too
 ```
+
+### Flag reference
+
+| Flag | Effect |
+|---|---|
+| `--mode {daily,weekly,monthly}` | Report mode (default `monthly`) |
+| `--date SPEC` | Anchor date in mode-specific format |
+| `--dry-run` | Skip both GitHub Pages push AND Slack post |
+| `--no-slack` | Push to Pages but skip Slack |
+| `--no-t1-regen` | Disable the auto T-1 cache health check for this run (used internally by spawned subprocesses to prevent recursion) |
+| `--rebuild-cache SPEC` | Regenerate cache for `YYYY-MM-DD` / `YYYY-MM` / `Nd` — cache-only by default |
+| `--publish-rebuilds` | When used with `--rebuild-cache`, also publish each regenerated daily to Pages + Slack |
 
 ### Date format per mode
 
@@ -412,17 +527,25 @@ Each line: `YYYY-MM-DD HH:MM:SS UTC  LEVEL    [TAG] message`
 
 ## Known limitations and open issues
 
-1. **Cross-midnight outage boundary handling.** The v1 cache merger doesn't merge an outage that spans midnight into one event. An outage from 23:55 day N → 02:30 day N+1 is recorded as two separate sub-5-min entries in the per-day caches → merged total *undercounts* by ~30 min. Tradeoff accepted vs. the worse phantom-overcount problem of the pre-hybrid OLD code.
+### ✅ Resolved 2026-06-13 (schema v2 cycle)
 
-2. **`recent_silent` per-day boundary.** The spurious-correction logic in cache files uses `recent_silent` computed at each day's end. For weekly/monthly aggregates, corrections were made against per-day silence rather than window silence. Subtle, acceptable for v1.
+1. **Cross-midnight outage boundary handling** — fixed. v2 cache stores raw event timestamps; merger re-pairs backup→grid events across the full multi-day window. Adel outage_windows separated by less than 120 s are merged automatically. A 23:55→02:30 outage now reports as one continuous ~2 h 35 min event.
 
-3. **No continuous APC presence/health metric.** Adel sites are observable continuously; APC sites are only observable on transitions. Closing this gap requires a PR to `swift-nav/sar` to scrape GPIO 4 ("APC UPS is Connected") and GPIO 3 ("Battery State is Normal/Charging") from the IBR600C router.
+2. **`recent_silent` per-day boundary** — fixed. Spurious correction + station-dark classifier are applied at merge/render time using **window-end** `recent_silent`, not baked in per-day.
 
-4. **NetCloud delivery latency floor.** Real timing accuracy is bounded by NetCloud's own alert delivery (~30–60 s), so even 1-min sampling can't claim sub-30 s precision. The 60s step approaches this floor; finer steps would not help.
+3. **No cache invalidation policy** — partially addressed via T-1 auto-regen (catches yesterday's bad caches automatically) + `--rebuild-cache` manual flag (covers any range). For deeper-history corruption beyond Prometheus retention, no recovery is possible regardless of script behaviour.
 
-5. **No cache invalidation policy.** If Prometheus backfills late-arriving alerts after the daily cache was already written, the cache is stale. Future: re-run the previous day as part of today's daily.
+### Still open
+
+4. **No continuous APC presence/health metric.** Adel sites are observable continuously; APC sites are only observable on transitions. Closing this gap requires a PR to `swift-nav/sar` to scrape GPIO 4 ("APC UPS is Connected") and GPIO 3 ("Battery State is Normal/Charging") from the IBR600C router.
+
+5. **NetCloud delivery latency floor.** Real timing accuracy is bounded by NetCloud's own alert delivery (~30–60 s), so even 1-min sampling can't claim sub-30 s precision. The 60s step approaches this floor; finer steps would not help.
 
 6. **`stations_exporter_endpoint_alive` is a dead metric.** Registered in the Prometheus catalog but has produced no samples in 90+ days; the exporter's endpoint-probing subsystem appears disabled. Not used by the script.
+
+7. **Active Thanos cluster topology is hard-coded.** `PASSIVE_THANOS_CLUSTERS = {"eu2"}` at the top of the cache section. If the active/passive flips again (or the topology changes to include more clusters), update this set so `[PROM-PASSIVE]` warnings are correctly tagged.
+
+8. **Cross-midnight Adel outage merge threshold is fixed at 120 s.** Two distinct Adel outages that happen to start within 2 minutes of each other across a midnight boundary would be incorrectly fused. Extremely rare in practice; acceptable tradeoff vs. complexity of finer heuristics.
 
 ---
 
@@ -526,7 +649,14 @@ dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyb
 | **Hybrid cache + live** | Daily runs write per-day JSON cache; weekly/monthly read cache + gap-fill from Prometheus → 1-min precision at all window sizes |
 | Phantom outage discovery | Pre-hybrid monthly inflated unpaired events into multi-day phantoms (FRMG 5d 9h, FRBE 1d 18h). Hybrid eliminates this class of bug. |
 | Validated end-to-end | May 2026 backfill: 31 dailies cached (818 KB total), 5 weeklies (W18 used 4-day gap-fill), monthly stitched from 31 cached days in 70 s |
+| **Schema v2** (2026-06-13) | Raw event timestamps stored per-day so weekly/monthly merger re-pairs backup→grid events **across midnight boundaries**. Spurious correction moved to merge time. Fixes cross-midnight outage undercount. |
+| **Battery-exhausted-dark classifier** | New 3rd classification: when `battery_exhausted ≥ 1` AND station is in `recent_silent`, duration is capped at UPS battery life instead of being thrown away as uncertain. Recovers signal we previously lost. |
+| **T-1 auto-regen + `--rebuild-cache`** | Daily mode sanity-checks yesterday's cache; missing or undersized cache auto-spawns a regen subprocess. Manual `--rebuild-cache` flag covers any range (YYYY-MM-DD / YYYY-MM / Nd). |
+| **Cluster-failover resilience** | After 2026-06-10 eu-prod-1↔eu-prod-2 active/passive flip exposed instant-query fragility, `fetch_adel_equipped_sites` now uses `last_over_time[7d]` and `fetch_global_nonprod_sites` uses `[24h]`. Prometheus warnings surface as `[PROM-WARN]` / `[PROM-PASSIVE]` in logs. |
+| **Methodology banner** | Beta-marked banner now rendered at the top of every report explaining the precision improvements + reclassification logic, until stakeholders are aligned and the banner is opted-out via `DFMG_HIDE_METHODOLOGY=1`. |
+| **Monitor panel 3 cache section** | `_panel_failures.sh` extended with yesterday's cache presence, 7-day coverage, schema-drift detection, and `[PROM-PASSIVE]`/`[PROM-WARN]` tail. |
+| Validated end-to-end (v2) | May 2026 re-rebuilt to v2 (31 dailies, 828 KB). Launchd-fired daily for 2026-06-11: T-1 sanity check (healthy → skipped), main daily completed in ~3 min including Pages publish + Slack post, methodology banner visible on Pages. |
 
 ---
 
-_Last reviewed: 2026-06-13 · hybrid cache+live active · autotune step at 60s for daily/weekly_
+_Last reviewed: 2026-06-13 · schema v2 active · cluster-failover-resilient · T-1 auto-regen on_
