@@ -21,6 +21,17 @@
  .row1 .kpi-value { font-size:30px; font-weight:700; margin-top:8px; line-height:1.05; }
  .row1 .kpi-sub { color:var(--muted); font-size:10px; margin-top:8px; }
 
+ /* Methodology banner — methodology change announcement (2026-06-13) */
+ .methodology-banner { background:linear-gradient(90deg,#1c2a3a 0%,#162028 100%);
+                         border:1px solid #2a4458; border-left:3px solid #4a90c8;
+                         border-radius:6px; padding:11px 14px; margin-top:14px;
+                         font-size:11px; line-height:1.55; color:#c8d4e0; }
+ .methodology-banner .head { font-size:10px; font-weight:700; letter-spacing:0.08em;
+                               color:#84b7d6; margin-bottom:4px; }
+ .methodology-banner b { color:#e6eef5; }
+ .methodology-banner code { background:#0f1820; padding:1px 5px; border-radius:3px;
+                              font-size:10.5px; color:#a9c0d3; }
+
  /* Row 1B: single full-width station health panel */
  .row1b { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
  .row1b .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; }
@@ -123,6 +134,8 @@
   </span>
 </div>
 
+<div class="methodology-banner"><div class="head">METHODOLOGY UPDATE · 2026-06-13 · BETA</div>INFRA-LITE outage durations now reconstructed at <b>1-minute precision</b> (was 5-min) via per-day cache + Prometheus gap-fill hybrid. Cross-midnight outages re-paired at merge time. Sites observed online with unpaired backup alerts are reclassified as <code>duration_uncertain</code>; sites with <code>battery_exhausted</code> events AND confirmed silent observations are now classified as <b>battery-exhausted → station dark</b> with duration capped at UPS battery life (Adel ~4h, APC ~1h). Previous reports inflated some single-site durations into multi-day phantoms; today's totals are more conservative and accurate. See the project README for full details.</div>
+
 <div class="row1">
   <div class="panel">
     <div class="kpi-label">24H AVAILABILITY</div>
@@ -173,7 +186,7 @@
 </div>
 
 <div class="footer">
-  Generated 2026-06-12 15:00 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
+  Generated 2026-06-12 18:14 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
 </div>
 
 </body></html>
