@@ -21,6 +21,37 @@
  .row1 .kpi-value { font-size:30px; font-weight:700; margin-top:8px; line-height:1.05; }
  .row1 .kpi-sub { color:var(--muted); font-size:10px; margin-top:8px; }
 
+ /* Path Connections — Phase 3 + Phase 4 (2026-06-18) */
+ .path-connections { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:8px; }
+ .path-col { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 16px; }
+ .path-col.path-primary { border-left:3px solid #26d97f; }
+ .path-col.path-secondary { border-left:3px solid #d9c623; }
+ .path-header { margin-bottom:10px; }
+ .path-title { font-size:12px; font-weight:700; letter-spacing:0.06em; }
+ .path-sub { color:var(--muted); font-size:10px; margin-top:2px; }
+ .path-kpis { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+ .path-kpi { background:var(--panel2); padding:8px 10px; border-radius:4px; }
+ .path-kpi .lbl { color:var(--muted); font-size:9px; letter-spacing:0.08em; font-weight:600; }
+ .path-kpi .val { font-size:22px; font-weight:700; margin-top:2px; line-height:1.1; }
+ .path-kpi .val .of { color:var(--muted); font-size:13px; font-weight:400; }
+ .path-kpi .pct { color:var(--muted); font-size:10px; margin-top:2px; }
+ .path-kpi .pc-ok-text { color:#26d97f; }
+ .path-kpi .pc-warn-text { color:#e88c1a; }
+ .path-table { width:100%; border-collapse:collapse; font-size:11px; }
+ .path-table thead th { text-align:left; color:var(--muted); font-size:9px; font-weight:700; letter-spacing:0.08em;
+                          padding:6px 8px; border-bottom:1px solid var(--border); background:var(--panel2); }
+ .path-table tbody td { padding:5px 8px; border-bottom:1px solid #1f242b; }
+ .path-table tbody tr:hover { background:var(--panel2); }
+ .path-table .pc-name { font-family:"SF Mono", Menlo, monospace; color:#c8ced8; white-space:nowrap; }
+ .path-table .pc-status { font-size:9.5px; font-weight:700; letter-spacing:0.04em; }
+ .path-table .pc-status.pc-ok    { color:#26d97f; }
+ .path-table .pc-status.pc-mild  { color:#d9c623; }
+ .path-table .pc-status.pc-info  { color:#e88c1a; }
+ .path-table .pc-status.pc-warn  { color:#e64646; }
+ .path-table .pc-num { text-align:right; font-variant-numeric:tabular-nums; color:#c8ced8; }
+ .path-table .pc-more { color:var(--muted); font-style:italic; padding:8px; text-align:center; }
+ .path-table .pc-more.pc-ok { color:#26d97f; font-style:normal; }
+
  /* Methodology banner — methodology change announcement (2026-06-13) */
  .methodology-banner { background:linear-gradient(90deg,#1c2a3a 0%,#162028 100%);
                          border:1px solid #2a4458; border-left:3px solid #4a90c8;
@@ -134,7 +165,7 @@
   </span>
 </div>
 
-<div class="methodology-banner"><div class="head">METHODOLOGY UPDATE · 2026-06-13 · BETA</div>INFRA-LITE outage durations now reconstructed at <b>1-minute precision</b> (was 5-min) via per-day cache + Prometheus gap-fill hybrid. Cross-midnight outages re-paired at merge time. Sites observed online with unpaired backup alerts are reclassified as <code>duration_uncertain</code>; sites with <code>battery_exhausted</code> events AND confirmed silent observations are now classified as <b>battery-exhausted → station dark</b> with duration capped at UPS battery life (Adel ~4h, APC ~1h). Previous reports inflated some single-site durations into multi-day phantoms; today's totals are more conservative and accurate. See the project README for full details.</div>
+<div class="methodology-banner"><div class="head">METHODOLOGY UPDATE · 2026-06-18 · BETA</div>INFRA-LITE outage durations now reconstructed at <b>1-minute precision</b> (was 5-min) via per-day cache + Prometheus gap-fill hybrid. Cross-midnight outages re-paired at merge time. Sites observed online with unpaired backup alerts are reclassified as <code>duration_uncertain</code>; sites with <code>battery_exhausted</code> events AND confirmed silent observations are classified as <b>battery-exhausted → station dark</b> (Adel ~4h, APC ~1h cap). <b>New 2026-06-18:</b> Path Connections section (Phase 3 + Phase 4) added — surfaces primary-wired stability and cellular-failover events per station. Note: per-SIM (SIM1 vs SIM2) and continuous wired↔cellular state are <i>not</i> exposed by Prometheus; we use SAR alert counter events instead. See the project README for full details.</div>
 
 <div class="row1">
   <div class="panel">
@@ -182,11 +213,51 @@
 </div>
 <div class="silent-panel" style="border-left:3px solid #e88c1a">
   <div class="head">    <div class="title">EMERGENCY POWER · affected sites</div>   <div class="count">4 / 249</div>  </div>
-  <table class="silent-table">    <thead><tr>      <th>STATION</th><th>SOURCE</th><th style="text-align:right">EVENTS</th>      <th>OUTAGE DURATION</th><th>TIME ON BATTERY</th><th>STATUS</th>    </tr></thead>    <tbody><tr><td class="silent-name">SWSG0xSWE</td><td><span style="color:#26d97f">Adel UPS</span></td><td style="text-align:right">0</td><td>37m</td><td><span style="color:#26d97f">37m</span> <span style="color:#8a93a0;font-size:10px">(100% of outage)</span></td><td><span style="color:#26d97f">✓ recovered (battery handled it)</span></td></tr><tr><td class="silent-name">FRDU0xFRA</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">DTVD0xDEU</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">DTMH0xDEU</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">2</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr></tbody>  </table>
+  <table class="silent-table">    <thead><tr>      <th>STATION</th><th>SOURCE</th><th style="text-align:right">EVENTS</th>      <th>OUTAGE DURATION</th><th>TIME ON BATTERY</th><th>STATUS</th>    </tr></thead>    <tbody><tr><td class="silent-name">SWSG0xSWE</td><td><span style="color:#26d97f">Adel UPS</span></td><td style="text-align:right">0</td><td>37m</td><td><span style="color:#26d97f">37m</span> <span style="color:#8a93a0;font-size:10px">(100% of outage)</span></td><td><span style="color:#26d97f">✓ recovered (battery handled it)</span></td></tr><tr><td class="silent-name">DTMH0xDEU</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">2</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">DTVD0xDEU</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">FRDU0xFRA</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr></tbody>  </table>
 </div>
 
+
+<h2 style="margin-top:28px">PATH CONNECTIONS · per station · primary wired-path stability + secondary cellular-path activations</h2>
+<div class="section-sub">
+  <b>Phase 3 (left)</b>: stations that stayed on the primary (wired) path the whole window — zero MDM cellular failovers and zero offline events.
+  <b>Phase 4 (right)</b>: stations that triggered cellular failover (WAN→MDM).
+  Source: <code>sar_alert_connection_state_{mdm,offline,online}_total</code> counter increments.
+  Per-SIM (SIM1 vs SIM2) detail is not surfaced — Prometheus does not expose it; see methodology banner.
+</div>
+<div class="path-connections">
+  <div class="path-col path-primary">
+    <div class="path-header">
+      <div class="path-title">PRIMARY PATH STABILITY · PHASE 3</div>
+      <div class="path-sub">wired path · no failover, no outage in window</div>
+    </div>
+    <div class="path-kpis">
+      <div class="path-kpi"><div class="lbl">STABLE</div><div class="val pc-ok-text">226<span class="of"> / 249</span></div><div class="pct">90.763%</div></div>
+      <div class="path-kpi"><div class="lbl">NEVER USED CELLULAR</div><div class="val">232<span class="of"> / 249</span></div><div class="pct">includes stable + offline-only sites</div></div>
+    </div>
+    <table class="path-table">
+      <thead><tr><th>STATION</th><th>STATUS</th><th>FAILOVERS</th><th>OFFLINE EVENTS</th></tr></thead>
+      <tbody><tr><td class="pc-name">ATGD0xAUT</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ATHB0xAUT</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ATHL0xAUT</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ATJB0xAUT</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ATKA0xAUT</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGBL0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGBO0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGLO0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGPV0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGVI0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">BGVN0xBGR</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">CZOL0xCZE</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">CZPA0xCZE</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DNAB0xDNK</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DNBR0xDNK</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DNHS0xDNK</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DNSO0xDNK</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTBA0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTBN0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTDD0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTFB0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTGB0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTHL0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTHR0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTHT0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTIF0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTKM0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTMB0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTMH0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td class="pc-name">DTND0xDEU</td><td class="pc-status pc-ok">stable</td><td class="pc-num">0</td><td class="pc-num">0</td></tr><tr><td colspan="4" class="pc-more">… and 196 more</td></tr></tbody>
+    </table>
+  </div>
+  <div class="path-col path-secondary">
+    <div class="path-header">
+      <div class="path-title">SECONDARY PATH ACTIVATIONS · PHASE 4</div>
+      <div class="path-sub">cellular failover events · WAN→MDM transitions</div>
+    </div>
+    <div class="path-kpis">
+      <div class="path-kpi"><div class="lbl">FAILED OVER</div><div class="val pc-warn-text">17<span class="of"> / 249</span></div><div class="pct">29 total events</div></div>
+      <div class="path-kpi"><div class="lbl">ON CELLULAR NOW</div><div class="val pc-warn-text">17</div><div class="pct">recent MDM, station online — heuristic</div></div>
+    </div>
+    <table class="path-table">
+      <thead><tr><th>STATION</th><th>STATUS</th><th>FAILOVERS</th><th>OFFLINE EVENTS</th></tr></thead>
+      <tbody><tr><td class="pc-name">FIHA0xFIN</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">10</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ESVA0xESP</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">2</td><td class="pc-num">5</td></tr><tr><td class="pc-name">GRKE0xGRC</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">2</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ROSI0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">2</td><td class="pc-num">2</td></tr><tr><td class="pc-name">ESMR0xESP</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">FRGE0xFRA</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">1</td></tr><tr><td class="pc-name">ITRS0xITA</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">2</td></tr><tr><td class="pc-name">ROBC0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">2</td></tr><tr><td class="pc-name">ROBO0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ROBR0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">RODE0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">1</td></tr><tr><td class="pc-name">ROMA0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ROSG0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ROTM0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">ROTU0xROU</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">SVKE0xSVK</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr><tr><td class="pc-name">SWSG0xSWE</td><td class="pc-status pc-warn">ON CELLULAR</td><td class="pc-num">1</td><td class="pc-num">0</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+
 <div class="footer">
-  Generated 2026-06-17 15:00 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
+  Generated 2026-06-17 21:58 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
 </div>
 
 </body></html>
