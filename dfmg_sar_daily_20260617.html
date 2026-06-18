@@ -27,21 +27,21 @@
  .path-col.path-primary { border-left:3px solid #26d97f; }
  .path-col.path-secondary { border-left:3px solid #d9c623; }
  .path-header { margin-bottom:10px; }
- .path-title { font-size:12px; font-weight:700; letter-spacing:0.06em; }
- .path-sub { color:var(--muted); font-size:10px; margin-top:2px; }
+ .path-title { font-size:14px; font-weight:700; letter-spacing:0.06em; }
+ .path-sub { color:var(--muted); font-size:12px; margin-top:3px; }
  .path-kpis { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
  .path-kpis.path-kpis-3 { grid-template-columns:1fr 1fr 1fr; }
  .path-kpis.path-kpis-5 { grid-template-columns:repeat(5, 1fr); gap:6px; }
  .path-kpis.path-kpis-6 { grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:14px; }
  /* v7 single-section table — full-width with inline bar in uptime cell */
  .path-table.path-table-single { width:100%; }
- .path-table.path-table-single th { padding:7px 10px; font-size:10px; }
- .path-table.path-table-single td { padding:6px 10px; }
- .path-table .pc-uptime-cell { display:flex; align-items:center; gap:10px;
-                                  font-variant-numeric:tabular-nums; padding:6px 10px;
-                                  color:#c8ced8; white-space:nowrap; }
- .pc-uptime-cell .inline-bar { background:#0f1218; border-radius:2px; height:8px;
-                                 width:120px; position:relative; overflow:hidden; flex:0 0 120px; }
+ .path-table.path-table-single th { padding:8px 12px; font-size:12px; }
+ .path-table.path-table-single td { padding:8px 12px; font-size:13px; }
+ .path-table .pc-uptime-cell { display:flex; align-items:center; gap:12px;
+                                  font-variant-numeric:tabular-nums; padding:7px 10px;
+                                  color:#c8ced8; white-space:nowrap; font-size:13px; }
+ .pc-uptime-cell .inline-bar { background:#0f1218; border-radius:2px; height:10px;
+                                 width:140px; position:relative; overflow:hidden; flex:0 0 140px; }
  .pc-uptime-cell .inline-bar-fill { position:absolute; left:0; top:0; bottom:0; }
  .pc-uptime-cell .dur-primary { font-weight:600; }
  .path-kpis.path-kpis-5 .path-kpi { padding:8px 8px; }
@@ -52,22 +52,22 @@
  /* Status rundown legend — explains each badge above Phase 3 + 4 tables */
  .status-rundown { background:var(--panel); border:1px solid var(--border); border-radius:6px;
                      padding:10px 14px; margin-top:14px; margin-bottom:12px; }
- .status-rundown-title { font-size:11px; font-weight:700; letter-spacing:0.1em; color:var(--muted); margin-bottom:8px; }
- .status-rundown-table { width:100%; border-collapse:collapse; font-size:10.5px; }
- .status-rundown-table th { text-align:left; color:var(--muted); font-size:9px; font-weight:700;
-                              letter-spacing:0.06em; padding:4px 8px; border-bottom:1px solid var(--border); }
- .status-rundown-table td { padding:5px 8px; border-bottom:1px solid #1f242b; vertical-align:top; }
- .status-rundown-table .rundown-desc { color:#c8ced8; line-height:1.5; }
- .status-rundown-table .rundown-count { color:#84b7d6; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; width:50px; }
+ .status-rundown-title { font-size:13px; font-weight:700; letter-spacing:0.1em; color:var(--muted); margin-bottom:10px; }
+ .status-rundown-table { width:100%; border-collapse:collapse; font-size:13px; }
+ .status-rundown-table th { text-align:left; color:var(--muted); font-size:11px; font-weight:700;
+                              letter-spacing:0.06em; padding:6px 10px; border-bottom:1px solid var(--border); }
+ .status-rundown-table td { padding:8px 10px; border-bottom:1px solid #1f242b; vertical-align:top; }
+ .status-rundown-table .rundown-desc { color:#c8ced8; line-height:1.55; }
+ .status-rundown-table .rundown-count { color:#84b7d6; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; width:60px; font-size:14px; }
  .path-kpi { background:var(--panel2); padding:8px 10px; border-radius:4px; }
- .path-kpi .lbl { color:var(--muted); font-size:9px; letter-spacing:0.08em; font-weight:600; }
- .path-kpi .val { font-size:22px; font-weight:700; margin-top:2px; line-height:1.1; }
- .path-kpi .val .of { color:var(--muted); font-size:13px; font-weight:400; }
- .path-kpi .pct { color:var(--muted); font-size:10px; margin-top:2px; }
+ .path-kpi .lbl { color:var(--muted); font-size:11px; letter-spacing:0.08em; font-weight:600; }
+ .path-kpi .val { font-size:26px; font-weight:700; margin-top:4px; line-height:1.1; }
+ .path-kpi .val .of { color:var(--muted); font-size:15px; font-weight:400; }
+ .path-kpi .pct { color:var(--muted); font-size:12px; margin-top:4px; }
  .path-kpi .pc-ok-text { color:#26d97f; }
  .path-kpi .pc-warn-text { color:#e88c1a; }
  .path-kpi .pc-mild-text { color:#d9c623; }
- .path-table .pc-num.pc-muted { color:#5a6470; font-size:10px; }
+ .path-table .pc-num.pc-muted { color:#5a6470; font-size:11px; }
  .path-table .pc-more.pc-divider { color:#5a6470; padding:4px 8px; text-align:left; font-style:normal; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); }
 
  /* Duration bars + duration formatting for partner-facing Phase 3+4 (v3) */
@@ -77,16 +77,16 @@
  .path-table .pc-dur { font-variant-numeric:tabular-nums; padding:5px 8px; color:#c8ced8; white-space:nowrap; }
  .path-table .pc-dur .dur-primary { font-weight:600; }
  .path-table .pc-dur .dur-secondary { color:#e88c1a; font-weight:600; }
- .path-table .pc-dur .dur-sub { display:inline-block; color:#5a6470; font-size:9px; margin-left:6px; font-weight:400; text-transform:lowercase; letter-spacing:0.05em; }
+ .path-table .pc-dur .dur-sub { display:inline-block; color:#5a6470; font-size:11px; margin-left:6px; font-weight:400; text-transform:lowercase; letter-spacing:0.05em; }
  .path-table.path-table-wide { table-layout:auto; }
- .path-table.path-table-wide th { font-size:9px; }
- .path-table { width:100%; border-collapse:collapse; font-size:11px; }
- .path-table thead th { text-align:left; color:var(--muted); font-size:9px; font-weight:700; letter-spacing:0.08em;
-                          padding:6px 8px; border-bottom:1px solid var(--border); background:var(--panel2); }
- .path-table tbody td { padding:5px 8px; border-bottom:1px solid #1f242b; }
+ .path-table.path-table-wide th { font-size:11px; }
+ .path-table { width:100%; border-collapse:collapse; font-size:13px; }
+ .path-table thead th { text-align:left; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:0.08em;
+                          padding:8px 10px; border-bottom:1px solid var(--border); background:var(--panel2); }
+ .path-table tbody td { padding:7px 10px; border-bottom:1px solid #1f242b; }
  .path-table tbody tr:hover { background:var(--panel2); }
- .path-table .pc-name { font-family:"SF Mono", Menlo, monospace; color:#c8ced8; white-space:nowrap; }
- .path-table .pc-status { font-size:9.5px; font-weight:700; letter-spacing:0.04em; }
+ .path-table .pc-name { font-family:"SF Mono", Menlo, monospace; color:#c8ced8; white-space:nowrap; font-size:12px; }
+ .path-table .pc-status { font-size:11px; font-weight:700; letter-spacing:0.04em; }
  .path-table .pc-status.pc-ok    { color:#26d97f; }
  .path-table .pc-status.pc-mild  { color:#d9c623; }
  .path-table .pc-status.pc-info  { color:#e88c1a; }
@@ -166,8 +166,8 @@
  .silent-table .silent-remark { color:#c8ced8; font-family:-apple-system,BlinkMacSystemFont,
                                   "Segoe UI",Roboto,sans-serif; line-height:1.5; }
 
- h2 { font-size:11px; color:var(--muted); letter-spacing:0.12em; font-weight:700; margin:28px 0 10px; }
- .section-sub { color:var(--muted); font-size:11px; margin-bottom:12px; }
+ h2 { font-size:14px; color:var(--muted); letter-spacing:0.1em; font-weight:700; margin:32px 0 12px; }
+ .section-sub { color:var(--muted); font-size:13px; margin-bottom:14px; line-height:1.55; }
 
  /* Metric block — single SAR block */
  .metric-block { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; margin-bottom:14px; }
@@ -279,7 +279,7 @@
 
 
 <div class="footer">
-  Generated 2026-06-18 19:46 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
+  Generated 2026-06-18 20:05 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 1-day window @ 60s step
 </div>
 
 </body></html>
