@@ -544,6 +544,51 @@ A per-station section that surfaces **wired↔cellular failover behavior** along
 
 Surfaced at the bottom of the section as a **DATA ACCURACY** reference panel so partners see explicit confidence levels per column.
 
+### Confidence labels — what they mean
+
+The DATA ACCURACY panel labels every column with one of four confidence levels. Understanding the difference is critical for interpreting the report:
+
+| Label | What it means | Where the answer comes from |
+|---|---|---|
+| **✓ DIRECT** | Observed | Read straight from a Prometheus gauge or counter at query time. Highest trust. |
+| **↔ INFERRED** | Deduced | Derived via fixed logic from other DIRECT measurements. Logically correct *if* its inputs are correct — trace the source chain to gauge trust. |
+| **≈ ESTIMATED** | Approximated | Numeric best-effort when no direct metric exists. Carries an unknown error margin. |
+| **✗ UNAVAILABLE** | Not knowable | The data point isn't exposed by any source we can read. Requires upstream work (SAR PR, NetCloud API) before it can be surfaced. |
+
+#### Why split INFERRED from ESTIMATED
+
+| | Inferred | Estimated |
+|---|---|---|
+| **Method** | Boolean / arithmetic logic | Numeric approximation |
+| **Failure mode** | Wrong only if input is wrong (deterministic chain) | Wrong by some unknown magnitude even with perfect input (sampling, capping, assumed averages) |
+| **Example** | Primary duration = uptime − cellular | Cellular session = mdm event → next event, capped at 4 h |
+| **What to do if it looks off** | Audit the input chain | Check whether the sampling/cap assumption holds |
+
+#### Two worked examples from this report
+
+**1. Primary (WAN) duration — INFERRED**
+
+There is no Prometheus metric `wan_uptime_total`. But we know:
+- `up_s` — total time online (gauge==1) — DIRECT
+- `cellular_uptime_s` — cellular session time — ESTIMATED
+
+So we deduce: `primary_uptime_s = up_s − cellular_uptime_s`. Pure arithmetic. Reliable *if* the cellular estimate is right.
+
+**2. "Currently on Cellular" detection — INFERRED**
+
+There is no `currently_on_cellular_now` metric. We reason from three DIRECT signals at query time:
+```
+IF gauge == 1 (online right now)
+AND mdm_2h > 0 (failed over within last 2h)
+AND mdm_2h > online_2h (more failovers than recoveries)
+THEN currently_on_cellular = True
+```
+The deduction is exact, but it can be a false positive if the station already recovered to WAN between the mdm event and report time. That's the kind of trust-chain audit INFERRED data invites.
+
+#### Practical takeaway
+
+When you see an **INFERRED** label on a column, treat the number as "logically correct if its inputs are correct" — look at what the source row says feeds it. The DATA ACCURACY table deliberately names the source for each row so readers can trace inferred → direct dependencies and decide how much to trust the final number.
+
 ### Status classifier rules (first match wins)
 
 | Rule | Status | Why |
@@ -714,4 +759,4 @@ dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyb
 
 ---
 
-_Last reviewed: 2026-06-19 · schema v2 active · Path Connections live · cluster-failover-resilient · T-1 auto-regen on_
+_Last reviewed: 2026-06-19 · schema v2 active · Path Connections live · Confidence-label legend inline · cluster-failover-resilient · T-1 auto-regen on_
