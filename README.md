@@ -374,8 +374,9 @@ The pre-hybrid monthly (single 30-day query at 5-min step) had a bug class we di
 7. Render:
      · Row 1     — 4 KPI panels (Avail, Had Downtime, Downtime %, Data Window)
      · Row 1B    — SAR Station Health (uptime % green / downtime % red + lists)
-     · Grid      — Active (worst-first) → SILENCED (amber) → NON-PROD (grey)
      · Emergency power — 3 KPI tiles + Power Infrastructure Health + per-site table
+     · Path Connections — 6 KPI tiles + per-station table (status · uptime · downtime · primary · secondary · current) + DATA ACCURACY + STATUS GUIDE
+     · Grid      — Active (worst-first) → SILENCED (amber) → NON-PROD (grey)
      · Footer    — Silent Stations remark table with per-station diagnostic
 ```
 
@@ -525,6 +526,54 @@ Each line: `YYYY-MM-DD HH:MM:SS UTC  LEVEL    [TAG] message`
 
 ---
 
+## Path Connections section (shipped 2026-06-18, refined 2026-06-19)
+
+A per-station section that surfaces **wired↔cellular failover behavior** alongside uptime/downtime. Sits between Emergency Power and the Grid section.
+
+### What the columns mean
+
+| Column | Source | Confidence |
+|---|---|---|
+| **STATION** | `name` label from `sar_status_connection_online` | Direct |
+| **STATUS** | rules-based classifier on event counters + uptime (see below) | Derived |
+| **UPTIME** | `sar_status_connection_online == 1` time + inline bar + trend arrow vs T-7 | Direct |
+| **DOWNTIME** | `sar_status_connection_online == 0` time | Direct |
+| **PRIMARY (WAN)** | `up_s − cellular_uptime_s` | Inferred (depends on #6) |
+| **SECONDARY (cellular · est)** | per-event session timing inferred from `sar_alert_connection_state_mdm_total` events, capped at 4 h/session | **Estimated** — best-effort, no NetCloud session-data access |
+| **CURRENT** | live `sar_status_connection_online` value + last-2h event window | Direct (WAN/Offline) + inferred (Cellular detection) |
+
+Surfaced at the bottom of the section as a **DATA ACCURACY** reference panel so partners see explicit confidence levels per column.
+
+### Status classifier rules (first match wins)
+
+| Rule | Status | Why |
+|---|---|---|
+| `up_s + down_s > 0` AND `up_s < 60s` | `offline-entire-window` | Long-silent station — counters look quiet only because router was unreachable to fire any event. Critical fix vs falsely flagging as "stable" |
+| `mdm_events == 0` AND `offline_events == 0` | `stable` | No transition events at all |
+| `mdm_events == 0` AND `offline_events > 0` | `outage-no-cellular` | Went offline but no failover happened |
+| `currently_on_cellular` heuristic fires | `on-cellular-now` | Online + mdm event in last 2h + more mdm than online events |
+| `mdm_events ≥ 5` AND `online_events ≥ mdm_events - 1` | `flapping` | Many failovers WITH matching recoveries — chronic cycling |
+| `mdm_events ≥ 5` AND `online_events < mdm_events - 1` | `stuck-degraded` | Failovers WITHOUT paired recoveries — sticky on cellular |
+| else | `brief-failover` | 1–4 failover events, recovered |
+
+### Caveats and current limitations
+
+1. **Per-SIM split (SIM1 vs SIM2) is not exposed by Prometheus.** Requires a `swift-nav/sar` PR to scrape per-slot gauges. Until then, "cellular" is a binary.
+2. **Cellular session durations are estimated.** Each mdm event is paired with the next online/offline event, capped at 4 h. Sessions longer than the cap are truncated; phantom-long sessions are not surfaced.
+3. **Finland anomaly (May 2026 monthly).** 14 of 15 Finnish stations classified `stuck-degraded` while showing **100% availability**. The mdm-event rate in Finland is 5–10× the rest of the fleet for the same observed uptime. Two interpretations: either Finland really is on cellular most of the time (cost story), or NetCloud emits spurious mdm alerts there (counter-semantics story). Distinguishing requires NetCloud Data Usage API access.
+4. **SAR `sar_status_connection_online` ≠ NTRIP service availability.** SAR measures whether the **NetCloud router** is reachable for management. The station hardware may still be streaming NTRIP via an alternate network path (direct internet, alt-VPN, etc.). For IRCO/HRPL in May 2026, the Grafana `orion_ntrip_client_bytes_sum` panel shows the station serving data most of the window even though SAR shows ~70%+ downtime. Adel's "Network Unreachable" corroborates SAR (both read the same NetCloud channel). For partner-facing service availability, cross-check with the Orion-bytes panel.
+
+### Headline accounting (sanity invariant)
+
+For each station: `up_s + down_s = window_seconds`. The split is then:
+- `primary_uptime_s = up_s − cellular_uptime_s`  (time online via WAN)
+- `cellular_uptime_s` ≤ `up_s`  (cellular only when ALSO online)
+- `down_s` = fully offline (both paths failed)
+
+CURRENT-column distribution should equal the production-station count exactly (e.g., May 2026 monthly: 244 WAN + 5 Offline + 1 Cellular = 250 prod).
+
+---
+
 ## Known limitations and open issues
 
 ### ✅ Resolved 2026-06-13 (schema v2 cycle)
@@ -656,7 +705,13 @@ dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyb
 | **Methodology banner** | Beta-marked banner now rendered at the top of every report explaining the precision improvements + reclassification logic, until stakeholders are aligned and the banner is opted-out via `DFMG_HIDE_METHODOLOGY=1`. |
 | **Monitor panel 3 cache section** | `_panel_failures.sh` extended with yesterday's cache presence, 7-day coverage, schema-drift detection, and `[PROM-PASSIVE]`/`[PROM-WARN]` tail. |
 | Validated end-to-end (v2) | May 2026 re-rebuilt to v2 (31 dailies, 828 KB). Launchd-fired daily for 2026-06-11: T-1 sanity check (healthy → skipped), main daily completed in ~3 min including Pages publish + Slack post, methodology banner visible on Pages. |
+| **Path Connections section** (2026-06-18) | Per-station wired↔cellular failover surfacing. Status classifier (7 categories), trend arrows vs T-7 baseline, primary/secondary duration columns, CURRENT (WAN/Cellular/Offline) column. Cellular durations estimated via per-mdm-event session timing capped at 4h. |
+| **Publish queue + morning drain** | GitHub API timeouts at the 23:00 PHT slot (VPN session expiry) caused 6 stuck reports between 2026-06-15 and 2026-06-17. Added a `cache/publish_queue.json` write-when-fail mechanism + `--drain-publish-queue` flag + 09:00 PHT launchd job that retries pending pushes when the VPN is fresh. Recovered all 6 backlogged reports automatically. |
+| **`offline-entire-window` classifier fix** (2026-06-19) | Stations with <60s of uptime in the window were falsely labelled "stable" because their counters looked quiet (router never reachable to fire events). Added an explicit pre-check on `up_s` so silent stations correctly surface as warning-color OFFLINE rows. Caught 4 stations in 2026-06-18 daily (FIJM0xFIN, FRMG0xFRA, HUVE0xHUN, RONA0xROU). |
+| **UX refinements** (2026-06-19) | STATUS GUIDE moved to bottom of Path Connections (reference position vs upfront). Removed redundant exec summary banner (info already in KPI tiles). Added trend-arrow legend above per-station table. Zero-uptime cells show `0s` instead of `—` (disambiguates "no data" vs "nothing was up"). DATA ACCURACY panel added — explicit confidence label (direct / inferred / estimated / unavailable) per visible column. |
+| **SAR vs Orion-bytes mismatch surfaced** (2026-06-19) | Cross-checking IRCO/HRPL May 2026 against Grafana's `orion_ntrip_client_bytes_sum` revealed the two metrics measure different observation points: SAR sees the NetCloud control channel, Orion sees actual NTRIP byte flow. A station can be "down" per SAR while still serving NTRIP via an alternate network path. Documented in the Path Connections caveats. |
+| Validated end-to-end (Phase 3) | May 2026 monthly republished 2026-06-19 with new layout. 250 prod stations, 97.6572% availability, current-connection distribution (244 WAN / 5 Offline / 1 Cellular = 250) matches production count exactly. STATUS GUIDE counts sum correctly after subtracting the legend rows. |
 
 ---
 
-_Last reviewed: 2026-06-13 · schema v2 active · cluster-failover-resilient · T-1 auto-regen on_
+_Last reviewed: 2026-06-19 · schema v2 active · Path Connections live · cluster-failover-resilient · T-1 auto-regen on_
