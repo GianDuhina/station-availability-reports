@@ -1,0 +1,1649 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Confluence Storage Format. Paste contents (between the root <ac:confluence> tags) into a Confluence page via the editor's "View source" panel, or POST via REST API: /rest/api/content with type=page, body.storage.value -->
+<ac:confluence xmlns:ac="http://atlassian.com/content" xmlns:ri="http://atlassian.com/resource/identifier">
+<h1>DFMG Station Availability</h1>
+<ac:structured-macro ac:name="info" ac:schema-version="1"><ac:rich-text-body><p><strong>Imported from README.md</strong> (generated 2026-06-20 19:37 UTC). For the canonical, always-current version see the source repository <a href="https://github.com/GianDuhina/station-availability-reports">gianduhina.github.io/station-availability-reports</a>.</p></ac:rich-text-body></ac:structured-macro>
+<h1 id="dfmg-station-availability">DFMG Station Availability</h1>
+<p>Automated daily / weekly / monthly reporting on DFMG partner station availability —
+pulled from Grafana/Thanos, rendered to HTML + PNG + CSV, published to GitHub Pages,
+posted to Slack <code>#testing-scripts</code>.</p>
+<p>This README captures everything we know about the system as of today: scripts, data
+sources, hardware tiers, the precision architecture, the cache+live hybrid layer,
+and the data-quality findings we've surfaced.</p>
+<hr>
+<h2 id="scripts">Scripts</h2>
+<p>All Python scripts live in <code>scripts/</code> after the 2026-06-19 reorg. Generated
+reports, cache, and <code>station_availability.log</code> continue to land at the project
+root (the <code>BASE_DIR</code> walk-up in <code>station_availability.py</code> handles this).</p>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Scope</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>scripts/dfmg_sar_availability.py</code></strong></td>
+<td>DFMG only · SAR metric only</td>
+<td>Production. Scheduled (daily/weekly/monthly + drain-queue plists). Hybrid cache. Swift-branded dark/light report.</td>
+</tr>
+<tr>
+<td><strong><code>scripts/regions_stationavailability.py</code></strong></td>
+<td>All partners · grouped by region</td>
+<td>NA / EU / AP rollup with dropdown selector + "All Regions - Overview" aggregate. Same feature set as DFMG (Path Connections, Emergency Power, DATA ACCURACY, hybrid cache). Not yet scheduled.</td>
+</tr>
+<tr>
+<td><code>scripts/station_availability.py</code></td>
+<td>All partners · multi-region</td>
+<td>Shared plumbing module (fetch / push / Slack / logo / cluster-failover). Imported by every other script.</td>
+</tr>
+<tr>
+<td><code>scripts/BETA_TESTING.py</code></td>
+<td>DFMG experiments</td>
+<td>Permanent BETA twin of <code>dfmg_sar_availability.py</code>. Outputs use <code>BETA_</code> prefix so production reports aren't overwritten.</td>
+</tr>
+<tr>
+<td><code>scripts/BETA_TESTING_regions.py</code></td>
+<td>Regional experiments</td>
+<td>Permanent BETA twin of <code>regions_stationavailability.py</code>. Same <code>BETA_</code> prefix isolation.</td>
+</tr>
+<tr>
+<td><code>scripts/dfmg_availability.py</code></td>
+<td>DFMG only · 3-metric variant (SAR + DCUPS + Orion)</td>
+<td>Deprecated. Logs a <code>[DEPRECATED]</code> warning on startup. Not scheduled. Kept for reference.</td>
+</tr>
+<tr>
+<td><code>scripts/station_check.py</code></td>
+<td>Per-station ad-hoc CLI diagnostic</td>
+<td>Interactive; not a periodic report.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Every change to "the report" defaults to <code>scripts/dfmg_sar_availability.py</code>
+(production) and <code>scripts/regions_stationavailability.py</code> (regional). BETA
+twins exist for experimental work — production stays untouched.</p>
+</blockquote>
+<hr>
+<h2 id="dfmg-eu-station-fleet-the-population-we-report-on">DFMG EU station fleet (the population we report on)</h2>
+<p>Pulled live at run time from <code>edge_sitetracker_site_status{customer="DFMG"}</code>. Counts as of last audit:</p>
+<table>
+<thead>
+<tr>
+<th>Hardware tier</th>
+<th>All sites</th>
+<th>Production (<code>noc_status==1</code>)</th>
+<th>Continuous telemetry available?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adel UPS</strong> (Full INFRA · GC11/GC13)</td>
+<td>174</td>
+<td>170</td>
+<td>✅ <code>power_management_dcups</code>, <code>ac_input_voltage</code>, <code>battery_*</code></td>
+</tr>
+<tr>
+<td><strong>APC Back-UPS Pro</strong> (INFRA LITE · GC08 · IBR600C)</td>
+<td>88</td>
+<td>80</td>
+<td>❌ event-driven only (<code>sar_alert_power_source_*</code> counters)</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td><strong>262</strong></td>
+<td><strong>250</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="geographic-split">Geographic split</h3>
+<p>APC INFRA LITE is concentrated in <strong>Western Europe</strong>:
+- 100% APC: France (29), UK (16), Austria (6), Denmark (4), Netherlands (3)
+- 96% APC: Germany (26 of 27)</p>
+<p>Adel Full INFRA dominates <strong>Southern / Eastern Europe</strong>: Spain (27), Italy (24), Norway (16), Finland (15), Greece (15), Poland (13), Sweden (20), Romania (10), Portugal (8), Bulgaria (6), Ireland (6), Croatia (4), Hungary (4), Czechia (2), Slovakia (2), Latvia (1).</p>
+<h3 id="why-this-matters">Why this matters</h3>
+<p>The two tiers are measured differently:
+- <strong>Adel sites</strong>: continuous gauges (battery voltage, AC input voltage, state-of-charge). Direct measurement of outage duration via <code>ac_input_voltage</code> drop into the outage range.
+- <strong>APC sites</strong>: no continuous telemetry exists in Prometheus — only NetCloud router GPIO transition alerts. Outage duration is <em>reconstructed</em> by pairing <code>backup_battery_total</code> (counter increments when grid lost) with <code>grid_power_total</code> (counter increments when grid restored).</p>
+<p>The router itself knows more (GPIO 4 reads "APC UPS is Connected", GPIO 3 reads "Battery State is Normal/Charging") but <code>swift-nav/sar</code> doesn't currently scrape those pins into Prometheus. Closing that gap would require a PR to the SAR repo.</p>
+<hr>
+<h2 id="metrics-and-authority-the-data-sources-powering-the-report">Metrics and authority — the data sources powering the report</h2>
+<h3 id="primary-metrics-priority-order">Primary metrics (priority order)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Metric</th>
+<th>What it measures</th>
+<th>How the script uses it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>edge_sitetracker_site_status{customer="DFMG"}</code></td>
+<td>Swift asset tracker's DFMG roster</td>
+<td><strong>Authoritative partner filter</strong> — defines the 262-station set</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>sar_status_connection_online</code></td>
+<td>NetCloud router connection (gauge 1/0/-1)</td>
+<td><strong>The uptime/downtime signal</strong>. Day-by-day fetch @ 60s step, OR-across-instances via <code>max by (name)</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>orion_num_obs_cors_sum</code></td>
+<td>GNSS correction observations received</td>
+<td><strong>Silent-station cross-match</strong> — sites missing here aren't producing GNSS data</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>orion_ntrip_client_bytes_sum</code></td>
+<td>NTRIP client bytes flowing</td>
+<td><strong>Verification cross-check</strong> — confirms offline vs hidden-failure diagnosis</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>edge_sitetracker_noc_status</code></td>
+<td>Deployment lifecycle (1=prod, -10=decom, 4=pending, 2=degraded)</td>
+<td><strong>Production vs test classification</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>power_management_dcups</code></td>
+<td>Adel UPS controller presence</td>
+<td><strong>Tier detection</strong> — sites in this set are Adel; complement is APC INFRA LITE</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>ac_input_voltage</code> (Adel only)</td>
+<td>Grid voltage at cabinet AC input</td>
+<td><strong>Continuous Adel outage measurement</strong> — drop into (-5V, 50V) range = outage</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>sar_alert_*_total</code> (12 counters)</td>
+<td>NetCloud event log</td>
+<td><strong>APC outage reconstruction + silent-station diagnostics</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sar_status_connection_online-value-semantics-per-swift-navsar"><code>sar_status_connection_online</code> value semantics (per <a href="https://github.com/swift-nav/sar">swift-nav/sar</a>)</h3>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+<th>Script behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1</code></td>
+<td>Online</td>
+<td>Counts as uptime second</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>Offline</td>
+<td>Counts as downtime second</td>
+</tr>
+<tr>
+<td><code>-1</code></td>
+<td>Unknown / not yet observed</td>
+<td>Treated as <strong>missing</strong> — does NOT count as downtime</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-12-sar-alert-counters-event-log">The 12 SAR alert counters (event log)</h3>
+<p>Each counter increments when SAR sees a specific NetCloud alert message. Confirmed against the SAR source code (<code>station_monitoring/lib/metrics.py</code> + <code>netcloud/alert.py</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Counter</th>
+<th>Triggered by NetCloud alert message</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sar_alert_connection_state_offline_total</code></td>
+<td><code>'The device entered the "offline" state'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_connection_state_online_total</code></td>
+<td><code>'The device entered the "online" state'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_connection_state_mdm_total</code></td>
+<td><code>'WAN interface changed from ethernet-wan to mdm'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_connection_state_wan_total</code></td>
+<td><code>'Wan interface changed from mdm to ethernet-wan'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_power_source_backup_battery_total</code></td>
+<td><code>'Power Source is Backup Battery'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_power_source_battery_exhausted_total</code></td>
+<td><code>'Battery State is Exhausted'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_power_source_battery_good_condition_total</code></td>
+<td><code>'Battery State is Good Condition'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_power_source_grid_power_total</code></td>
+<td><code>'Power Source is Grid Power'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_cabinet_door_open_total</code></td>
+<td><code>'Cabinet Door is OPEN'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_cabinet_door_closed_total</code></td>
+<td><code>'Cabinet Door is CLOSED'</code></td>
+</tr>
+<tr>
+<td><code>sar_alert_other_total</code></td>
+<td>Any unrecognised alert string</td>
+</tr>
+</tbody>
+</table>
+<p>Event-pattern → headline mapping (silent-station diagnostics):</p>
+<table>
+<thead>
+<tr>
+<th>Pattern in last 30d</th>
+<th>Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>battery_exhausted ≥ 1</code></td>
+<td>Power outage event — battery exhausted during window</td>
+</tr>
+<tr>
+<td><code>backup_battery ≥ 1</code> AND <code>grid_power ≥ 1</code></td>
+<td>Power blip — switched to backup battery and recovered</td>
+</tr>
+<tr>
+<td><code>backup_battery ≥ 1</code> only</td>
+<td>Power issue — switched to battery (no grid-recovery alert)</td>
+</tr>
+<tr>
+<td><code>offline ≥ 1</code> AND <code>online ≥ 1</code></td>
+<td>Connection flapping — N offline, N online</td>
+</tr>
+<tr>
+<td><code>offline ≥ 1</code> only</td>
+<td>Went offline N time(s) without recovery alert</td>
+</tr>
+<tr>
+<td><code>mdm ≥ 1</code></td>
+<td>Switched to mobile backup (WAN→MDM) N time(s)</td>
+</tr>
+<tr>
+<td><code>door_open</code> / <code>door_closed ≥ 1</code></td>
+<td>Site visit — cabinet door events</td>
+</tr>
+<tr>
+<td>no events in 30d</td>
+<td>No alert events in last 30d — silent before lookback window</td>
+</tr>
+</tbody>
+</table>
+<h3 id="authority-chain-what-we-trust-vs-what-we-infer">Authority chain — what we trust vs what we infer</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Source</th>
+<th>Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Station belongs to DFMG</td>
+<td><code>edge_sitetracker_site_status{customer="DFMG"}</code></td>
+<td><strong>Authoritative</strong></td>
+</tr>
+<tr>
+<td>Station is in production</td>
+<td><code>edge_sitetracker_noc_status == 1</code></td>
+<td><strong>Authoritative</strong></td>
+</tr>
+<tr>
+<td>NetCloud router is online</td>
+<td><code>sar_status_connection_online</code></td>
+<td><strong>Authoritative</strong> (SAR polls NetCloud directly)</td>
+</tr>
+<tr>
+<td>Station produced GNSS obs</td>
+<td><code>orion_num_obs_cors_sum</code> series present</td>
+<td><strong>Authoritative</strong></td>
+</tr>
+<tr>
+<td>Power / connection events happened</td>
+<td><code>sar_alert_*_total</code> increments</td>
+<td><strong>Authoritative</strong> (NetCloud event log)</td>
+</tr>
+<tr>
+<td>Site has Adel UPS</td>
+<td><code>power_management_dcups</code> series present</td>
+<td><strong>Authoritative</strong></td>
+</tr>
+<tr>
+<td>Site has APC UPS</td>
+<td>NOT in <code>power_management_dcups</code> set</td>
+<td><strong>Inferred</strong> (by exclusion — no direct APC presence metric)</td>
+</tr>
+<tr>
+<td>Trimble vs Septentrio fault</td>
+<td>per-<code>antenna_instance</code> (0=Trimble, 1=Septentrio) obs presence</td>
+<td><strong>Inferred</strong> from convention</td>
+</tr>
+<tr>
+<td>DMVPN status</td>
+<td>inferred from "both receivers silent"</td>
+<td><strong>Inferred</strong> — <code>frr_bgp_peer_state</code> exists but no peer↔site mapping</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="precision-architecture-the-hybrid-cachelive-layer">Precision architecture (the hybrid cache+live layer)</h2>
+<h3 id="the-problem-we-solved">The problem we solved</h3>
+<p>The APC INFRA-LITE outage reconstruction queries SAR alert counters over the report window. Prometheus' query-point cap (~11,000 points per query) constrained the step:</p>
+<table>
+<thead>
+<tr>
+<th>Window</th>
+<th>At 60s step</th>
+<th>At 300s step</th>
+<th>11k cap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily</td>
+<td>1,440 points</td>
+<td>288 points</td>
+<td>✅ both fit</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>10,080 points</td>
+<td>2,016 points</td>
+<td>✅ both fit</td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td><strong>43,200 points</strong></td>
+<td>8,640 points</td>
+<td>❌ 60s fails, 300s fits</td>
+</tr>
+</tbody>
+</table>
+<p>So monthly was stuck at 5-minute precision — outages shorter than 5 minutes were invisible, and the coarse step inflated unpaired-event durations to phantom multi-day spans.</p>
+<h3 id="the-fix-autotune-per-day-cache">The fix: autotune + per-day cache</h3>
+<p><strong>Layer 1 — autotune step (<code>_estimate_backup_pro_durations</code>).</strong> Replaced the hardcoded <code>step_s=300</code> default with a call to <code>_autotune_step(start_dt, end_dt)</code>, which picks the smallest step that fits under the cap:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">python</ac:parameter><ac:plain-text-body><![CDATA[def _estimate_backup_pro_durations(non_adel_names, name_to_site, start_dt, end_dt, step_s=None):
+    if step_s is None:
+        step_s = _autotune_step(start_dt, end_dt)
+    ...
+]]></ac:plain-text-body></ac:structured-macro>
+<p>Result: daily → 60s, weekly → 60s, monthly → ~240–300s. No regression on monthly; daily/weekly get 5× sharper.</p>
+<p><strong>Layer 2 — cache + live hybrid.</strong> Daily runs persist their per-station emergency-power data to disk; weekly/monthly runs read the cached daily files and only gap-fill from Prometheus for missing dates. This means weekly/monthly reports get <strong>1-minute precision at every window size</strong> because the cache was generated at 60s step.</p>
+<h3 id="cache-directory-layout">Cache directory layout</h3>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[station-availability/cache/
+├── sar_daily_dfmg_2026-05-01.json   ← per-day, ~26 KB
+├── sar_daily_dfmg_2026-05-02.json
+├── ...
+└── sar_daily_dfmg_2026-05-31.json
+]]></ac:plain-text-body></ac:structured-macro>
+<h3 id="cache-schema-v2">Cache schema (v2)</h3>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">json</ac:parameter><ac:plain-text-body><![CDATA[{
+  "schema_version": 2,
+  "partner": "DFMG",
+  "window": {"start": "2026-05-01T00:00:00+00:00", "end": "2026-05-02T00:00:00+00:00"},
+  "sar_agg_prod": { "<site>": {"name", "country", "region", "up_s", "down_s", "missing_s"} },
+  "emergency_data": {
+    "<site>": {
+      "source": "adel" | "backups-pro",
+      "duration_s": ...,
+      "events": ...,
+      "currently_on_battery": ...,
+      "outage_windows": [[ts_start, ts_end], ...],
+      "battery_runtime_s": ...,
+      "raw_events": {
+        "backup":    [ts, ts, ...],   // INFRA-LITE counter increments (timestamps)
+        "grid":      [ts, ts, ...],
+        "exhausted": [ts, ts, ...],
+        "good":      [ts, ts, ...]
+      }
+    }
+  },
+  "adel_sites": [...],
+  "nonprod_global": [...],
+  "metadata": {"generated_at", "n_production_sites", "n_emergency_data_sites", "step_seconds_used"}
+}
+]]></ac:plain-text-body></ac:structured-macro>
+<p><strong>What changed in v2 (2026-06-13):</strong>
+- <code>raw_events</code> added — stores per-site counter-increment timestamps so the weekly/monthly merger can <strong>re-pair backup→grid events across day boundaries</strong> (fixes the cross-midnight outage undercount).
+- <code>duration_uncertain</code> removed from cache — spurious correction is now applied at <strong>merge/render time</strong> using window-end <code>recent_silent</code>, not baked in per-day. This means a site flagged "uncertain" on day N can be correctly reclassified on a weekly/monthly view if window-end evidence differs.
+- Schema-version reader is strict: any v1 cache is logged as schema-drift and ignored — run <code>--rebuild-cache</code> to refresh.</p>
+<h3 id="storage-footprint">Storage footprint</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Bytes/day</th>
+<th>Per year</th>
+<th>Per 10 years</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Typical (~30 KB)</td>
+<td>30,000</td>
+<td>11 MB</td>
+<td>110 MB</td>
+</tr>
+<tr>
+<td>Worst case (~40 KB)</td>
+<td>40,000</td>
+<td>14.6 MB</td>
+<td>146 MB</td>
+</tr>
+</tbody>
+</table>
+<p>Trivial. Local-only storage; no remote backup needed.</p>
+<h3 id="what-the-hybrid-actually-does-at-run-time">What the hybrid actually does at run time</h3>
+<p>For <strong>daily</strong> mode:
+1. Fetch raw event timestamps + per-day outage windows
+2. Compute <code>battery_runtime_s</code>
+3. Write RAW v2 cache (no spurious correction baked in)
+4. Apply spurious-correction + station-dark classifier in-memory using day-end <code>recent_silent</code>
+5. Render with the corrected view</p>
+<p>For <strong>weekly / monthly</strong> mode (<code>hybrid_fetch_emergency_power</code>):
+1. Walk every day in the window
+2. For each cached date → load from disk (~&lt;1 ms each)
+3. For each missing date → query Prometheus for that day, write a gap-fill v2 cache
+4. <strong>Re-pair INFRA-LITE backup/grid events across the FULL window</strong> (so a 23:55→02:30 outage is one continuous duration, not two split sub-day fragments)
+5. Merge contiguous Adel outage windows (catches Adel cross-midnight too)
+6. Apply spurious-correction + station-dark classifier using <strong>window-end</strong> <code>recent_silent</code></p>
+<h3 id="battery-exhausted-station-dark-classification-new-2026-06-13">Battery-exhausted + station-dark classification (new 2026-06-13)</h3>
+<p>Two distinct cases used to collapse into <code>duration_uncertain</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>OLD classification</th>
+<th>NEW classification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unpaired <code>backup_battery</code> alert + station still producing observations</td>
+<td><code>duration_uncertain</code> (excluded from totals)</td>
+<td><code>duration_uncertain</code> (excluded from totals) — unchanged</td>
+</tr>
+<tr>
+<td><code>battery_exhausted</code> ≥ 1 alert AND station is in <code>recent_silent</code> (no obs in last 24h)</td>
+<td><code>duration_uncertain</code> (excluded — data lost)</td>
+<td><strong><code>station_dark = True</code></strong> — duration capped at UPS battery life (Adel ~4 h / APC ~1 h), counted in totals</td>
+</tr>
+</tbody>
+</table>
+<p>So an outage that exceeded UPS capacity (battery died, station went dark) now contributes a realistic duration based on hardware battery-life limits, instead of being silently dropped. Recovers signal we previously threw away.</p>
+<h3 id="what-is-not-cached-still-hits-prometheus-on-every-weeklymonthly-run">What is NOT cached (still hits Prometheus on every weekly/monthly run)</h3>
+<p>The cache is scoped narrowly to the slowest single piece (INFRA-LITE counter timeline reconstruction). Everything else still queries live:</p>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th>Why not cached</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sar_status_connection_online</code> day-by-day fetches</td>
+<td>Already fast; drives availability %</td>
+</tr>
+<tr>
+<td><code>edge_sitetracker_site_status</code> (roster)</td>
+<td>Single instant query, very cheap</td>
+</tr>
+<tr>
+<td><code>edge_sitetracker_noc_status != 1</code> (non-prod)</td>
+<td>Cheap</td>
+</tr>
+<tr>
+<td><code>orion_num_obs_cors_sum</code> (silent cross-match)</td>
+<td>Window-wide, depends on full window</td>
+</tr>
+<tr>
+<td>Silent diagnostics (obs, NTRIP, NOC tracker, alerts)</td>
+<td>Per-site, only for silent sites</td>
+</tr>
+<tr>
+<td><code>power_management_dcups</code> (Adel detection)</td>
+<td>Cheap</td>
+</tr>
+<tr>
+<td><code>last_over_time(orion_num_obs_cors_sum[24h])</code> (recent-silent)</td>
+<td>Must be fresh</td>
+</tr>
+</tbody>
+</table>
+<p>The log line <code>[HEADLINE] Emergency power: N sites affected · D total on-battery (hybrid cache+live)</code> confirms which path was taken.</p>
+<h3 id="performance">Performance</h3>
+<table>
+<thead>
+<tr>
+<th>Run</th>
+<th>Wall-clock</th>
+<th>What hit Prometheus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily</td>
+<td>~30–40 s</td>
+<td>All standard daily queries + raw events fetch + cache write</td>
+</tr>
+<tr>
+<td>Weekly (all 7 days cached)</td>
+<td>~30 s</td>
+<td>Everything except emergency_power</td>
+</tr>
+<tr>
+<td>Weekly (with gap-fill)</td>
+<td>~60 s</td>
+<td>Standard + per-day emergency_power for missing days</td>
+</tr>
+<tr>
+<td>Monthly (all 31 days cached)</td>
+<td>~65–70 s</td>
+<td>Everything except emergency_power</td>
+</tr>
+<tr>
+<td>Monthly (single-query, pre-hybrid)</td>
+<td>~3–5 min</td>
+<td>Everything including 30-day SAR counter range query</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="cache-freshness-recovery-t-1-regen-rebuild-cache">Cache freshness &amp; recovery (T-1 regen + <code>--rebuild-cache</code>)</h2>
+<h3 id="automatic-t-1-sanity-check">Automatic T-1 sanity check</h3>
+<p>At the start of every <strong>daily</strong> run (unless <code>--dry-run</code> or <code>--no-t1-regen</code>), the script checks yesterday's cache:</p>
+<ul>
+<li>If the cache file is <strong>missing</strong> OR has fewer than <strong>50 production sites</strong> (suggests Prometheus had errors during yesterday's run), the script spawns a daily subprocess for yesterday with publish + Slack enabled.</li>
+<li>The subprocess regenerates yesterday's cache, re-renders the HTML/CSV/PNG, and republishes — surfacing the "🔄 RE-RUN — corrected" version to Pages and Slack.</li>
+<li>Recursion is prevented by passing <code>--no-t1-regen</code> to spawned subprocesses, so the chain caps at T-1 (one day). Deeper holes require the manual <code>--rebuild-cache</code> flag below.</li>
+</ul>
+<h3 id="manual-rebuild-rebuild-cache-spec">Manual rebuild — <code>--rebuild-cache &lt;SPEC&gt;</code></h3>
+<p>Use when a known date range is bad (Prometheus retention rollover, cluster failover tail, lost upstream data, etc.).</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[# One specific day
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10
+
+# A whole month
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05
+
+# Last N days
+python3 dfmg_sar_availability.py --rebuild-cache 7d
+
+# Also republish the regenerated reports (default is cache-only, silent)
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05 --publish-rebuilds
+]]></ac:plain-text-body></ac:structured-macro>
+<p>Behaviour: deletes the existing cache for each affected date, spawns a daily subprocess with <code>--dry-run</code> (cache-only by default — no Slack spam), regenerates the v2 cache file. Adding <code>--publish-rebuilds</code> opts into Pages + Slack for each date (useful for backfilling one or two specific reports).</p>
+<hr>
+<h2 id="cluster-failover-resilience">Cluster-failover resilience</h2>
+<h3 id="what-happened-2026-06-10">What happened 2026-06-10</h3>
+<p>Swift's edge Thanos infrastructure flipped active/passive: <strong>eu-prod-2 → passive, eu-prod-1 → active</strong>. Confirmed via the AWS Route 53 mTLS casters dashboard at the time of the change. The passive cluster's Thanos receivers (<code>cluster="eu2"</code>) remained reachable for historical queries but with occasional <code>rpc error: code = Unavailable</code> warnings for adjacent timestamps.</p>
+<h3 id="symptoms-we-hit">Symptoms we hit</h3>
+<ul>
+<li><code>power_management_dcups</code> instant queries returning <strong>0 series</strong> during certain windows, causing all Adel sites to silently misclassify as INFRA-LITE.</li>
+<li>Roster + non-prod queries similarly flickered around the failover boundary.</li>
+</ul>
+<h3 id="fixes-active-2026-06-13">Fixes (active 2026-06-13)</h3>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th>Old</th>
+<th>New</th>
+<th>Why safe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fetch_adel_equipped_sites</code></td>
+<td>instant query</td>
+<td><code>last_over_time[7d]</code></td>
+<td>Adel hardware-tier transitions are months-to-years scale</td>
+</tr>
+<tr>
+<td><code>fetch_global_nonprod_sites</code></td>
+<td>instant query</td>
+<td><code>last_over_time[24h]</code></td>
+<td><code>noc_status</code> changes are administrative (days-to-weeks scale)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prom-passive-and-prom-warn-log-tags"><code>[PROM-PASSIVE]</code> and <code>[PROM-WARN]</code> log tags</h3>
+<p><code>_instant_query</code> and the v2 raw-events range query both extract Prometheus' <code>warnings</code> field from the response and log them as <code>WARNING</code>:</p>
+<ul>
+<li><code>[PROM-PASSIVE]</code> — warnings that reference a known passive Thanos cluster (<code>cluster="eu2"</code> in the current topology). Flagged distinctly so operators can spot them in the monitor.</li>
+<li><code>[PROM-WARN]</code> — any other Prometheus warning (typically dev or transient backend issues).</li>
+</ul>
+<p>If the passive cluster set changes, update <code>PASSIVE_THANOS_CLUSTERS = {"eu2"}</code> at the top of the cache section in <code>dfmg_sar_availability.py</code>.</p>
+<hr>
+<h2 id="data-quality-finding-phantom-outages-eliminated">Data-quality finding — phantom outages eliminated</h2>
+<p>The pre-hybrid monthly (single 30-day query at 5-min step) had a bug class we didn't notice until the hybrid surfaced it:</p>
+<p><strong>Symptom (OLD monthly for May 2026):</strong>
+- FRMG0xFRA: 2 events, <strong>5d 9h 50m</strong> duration
+- FRBE0xFRA: 5 events, <strong>1d 18h 40m</strong> duration
+- Total fleet on-battery: <strong>9d 23h 35m</strong></p>
+<p><strong>Same window, NEW hybrid+autotune:</strong>
+- FRMG0xFRA, FRBE0xFRA: classified as <code>duration_uncertain</code> (excluded from totals)
+- Total fleet on-battery: <strong>2d 8h 12m</strong></p>
+<p><strong>Root cause:</strong> an unpaired <code>backup_battery</code> event (NetCloud alert sent, recovery alert lost or never arrived) gets extended to "end of window" by the script. In a 30-day window, that becomes a multi-day phantom. The per-day cache approach naturally caps any unpaired event at 24 hours and the spurious-correction logic reclassifies it as uncertain.</p>
+<p><strong>Net effect:</strong> monthly reports are now ~4× more conservative for fleet on-battery totals, and the previously inflated single-site multi-day durations are gone. The 7d 15h delta between OLD and NEW totals is almost entirely accounted for by FRMG (5d 9h) + FRBE (1d 18h).</p>
+<p><strong>Action item carried forward:</strong> the two sites that consistently produce these phantom events (FRMG, FRBE) likely have a quirky NetCloud alert delivery pattern. Worth investigating router-side whether recovery alerts are being lost upstream.</p>
+<hr>
+<h2 id="how-the-report-is-constructed-data-flow">How the report is constructed (data flow)</h2>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[1. Fetch authoritative DFMG roster                ──► 262 sites with customer="DFMG"
+        │
+        ▼
+2. Fetch sar_status_connection_online day-by-day ──► raw uptime samples @ 60s step
+        │
+        ▼
+3. Rollup per station: up_s, down_s, missing_s
+   (ignore -1 unknown samples · keep only sites in roster)
+        │
+        ▼
+4. Compute headline KPIs:
+     availability = up_s / (up_s + down_s)
+     affected     = count of stations with down_s > 0
+        │
+        ▼
+5. For each silent station (no obs in window):
+     a. noc_status            ─► if ≠ 1, short-circuit as "non-prod"
+     b. NetCloud alerts (30d) ─► event story (the human remark)
+     c. Orion per-receiver    ─► Trimble/Septentrio/DMVPN inference
+     d. NTRIP bytes           ─► verification of offline diagnosis
+        │
+        ▼
+6. Emergency power section:
+     daily mode   ─► fetch + correct + battery_runtime + write cache
+     weekly/mthly ─► read cache + gap-fill missing days + merge
+        │
+        ▼
+7. Render:
+     · Row 1     — 4 KPI panels (Avail, Had Downtime, Downtime %, Data Window)
+     · Row 1B    — SAR Station Health (uptime % green / downtime % red + lists)
+     · Emergency power — 3 KPI tiles + Power Infrastructure Health + per-site table
+     · Path Connections — 6 KPI tiles + per-station table (status · uptime · downtime · primary · secondary · current) + DATA ACCURACY + STATUS GUIDE
+     · Grid      — Active (worst-first) → SILENCED (amber) → NON-PROD (grey)
+     · Footer    — Silent Stations remark table with per-station diagnostic
+]]></ac:plain-text-body></ac:structured-macro>
+<hr>
+<h2 id="cli">CLI</h2>
+<p>Default behaviour: <strong>publish to GitHub Pages AND post to Slack <code>#testing-scripts</code></strong> on every run.</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[# Default = previous full calendar month
+python3 dfmg_sar_availability.py
+
+# Specific period
+python3 dfmg_sar_availability.py --mode daily   --date 2026-05-29
+python3 dfmg_sar_availability.py --mode weekly  --date 2026-W21
+python3 dfmg_sar_availability.py --mode monthly --date 2026-04
+
+# Opt-outs
+python3 dfmg_sar_availability.py --mode daily --dry-run            # skip Pages push + Slack
+python3 dfmg_sar_availability.py --mode daily --no-slack           # push to Pages, skip Slack
+python3 dfmg_sar_availability.py --mode daily --no-t1-regen        # skip T-1 auto-regen
+
+# Manual cache recovery
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10        # one day, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 2026-05           # whole month, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 7d                # last 7 days, cache-only
+python3 dfmg_sar_availability.py --rebuild-cache 2026-06-10 --publish-rebuilds  # republish too
+]]></ac:plain-text-body></ac:structured-macro>
+<h3 id="flag-reference">Flag reference</h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--mode {daily,weekly,monthly}</code></td>
+<td>Report mode (default <code>monthly</code>)</td>
+</tr>
+<tr>
+<td><code>--date SPEC</code></td>
+<td>Anchor date in mode-specific format</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Skip both GitHub Pages push AND Slack post</td>
+</tr>
+<tr>
+<td><code>--no-slack</code></td>
+<td>Push to Pages but skip Slack</td>
+</tr>
+<tr>
+<td><code>--no-t1-regen</code></td>
+<td>Disable the auto T-1 cache health check for this run (used internally by spawned subprocesses to prevent recursion)</td>
+</tr>
+<tr>
+<td><code>--rebuild-cache SPEC</code></td>
+<td>Regenerate cache for <code>YYYY-MM-DD</code> / <code>YYYY-MM</code> / <code>Nd</code> — cache-only by default</td>
+</tr>
+<tr>
+<td><code>--publish-rebuilds</code></td>
+<td>When used with <code>--rebuild-cache</code>, also publish each regenerated daily to Pages + Slack</td>
+</tr>
+</tbody>
+</table>
+<h3 id="date-format-per-mode">Date format per mode</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th><code>--date</code> accepts</th>
+<th>Cache behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>daily</code></td>
+<td><code>YYYY-MM-DD</code> (one calendar day)</td>
+<td><strong>Writes</strong> cache after run</td>
+</tr>
+<tr>
+<td><code>weekly</code></td>
+<td><code>YYYY-MM-DD</code> (any day in week) OR <code>YYYY-Www</code></td>
+<td><strong>Reads</strong> cache + gap-fills missing</td>
+</tr>
+<tr>
+<td><code>monthly</code></td>
+<td><code>YYYY-MM</code> OR <code>YYYY-MM-DD</code> (snaps to first of month)</td>
+<td><strong>Reads</strong> cache + gap-fills missing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-gets-generated-per-run">What gets generated per run</h3>
+<p>Local files at <code>/Users/gian.duhina/projectclaude/station-availability/</code>:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[dfmg_sar_<period>_<stamp>.html
+dfmg_sar_<period>_<stamp>.png
+dfmg_sar_<period>_<stamp>.csv
+cache/sar_daily_dfmg_<YYYY-MM-DD>.json   (daily mode only, or gap-fill in weekly/monthly)
+]]></ac:plain-text-body></ac:structured-macro>
+<p>Pushed to GitHub Pages at https://gianduhina.github.io/station-availability-reports/ in three places:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dfmg_sar_&lt;period&gt;_&lt;stamp&gt;.&lt;ext&gt;</code></td>
+<td>Canonical dated archive</td>
+</tr>
+<tr>
+<td><code>latest_dfmg_sar_&lt;mode&gt;.&lt;ext&gt;</code></td>
+<td>Convenience alias (overwritten per run)</td>
+</tr>
+<tr>
+<td><code>snapshots/dfmg_sar_&lt;period&gt;_&lt;stamp&gt;_&lt;utcstamp&gt;.&lt;ext&gt;</code></td>
+<td>Unique-per-publish (Slack link target — no stale cache)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="scheduled-runs-launchd">Scheduled runs (launchd)</h2>
+<p>Times are local PST (UTC+8). Plists live in <code>~/Library/LaunchAgents/</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Job</th>
+<th>Schedule (local)</th>
+<th>UTC</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>com.station-availability.dfmg-sar.daily</code></td>
+<td>every day 23:00</td>
+<td>15:00 UTC</td>
+<td>Previous day window + writes cache</td>
+</tr>
+<tr>
+<td><code>com.station-availability.dfmg-sar.weekly</code></td>
+<td>Monday 23:15</td>
+<td>Mon 15:15 UTC</td>
+<td>Previous full ISO week (reads cache)</td>
+</tr>
+<tr>
+<td><code>com.station-availability.dfmg-sar.monthly</code></td>
+<td>day-1 of month 23:30</td>
+<td>15:30 UTC day-1</td>
+<td>Previous calendar month (reads cache)</td>
+</tr>
+<tr>
+<td><code>com.station-availability.monitor</code></td>
+<td>RunAtLoad + KeepAlive</td>
+<td>—</td>
+<td>Keeps tmux monitor session alive</td>
+</tr>
+</tbody>
+</table>
+<p>⚠ <strong>launchd does NOT catch up missed schedules.</strong> If the Mac is off at fire time, that run is skipped. Panel 3 of the monitor flags this (daily &gt;25h, weekly &gt;8d, monthly &gt;35d).</p>
+<p>Force-fire a scheduled job manually:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[launchctl start com.station-availability.dfmg-sar.daily
+launchctl start com.station-availability.dfmg-sar.weekly
+launchctl start com.station-availability.dfmg-sar.monthly
+]]></ac:plain-text-body></ac:structured-macro>
+<p>Reload a plist after editing:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[launchctl unload ~/Library/LaunchAgents/com.station-availability.dfmg-sar.daily.plist
+launchctl load   ~/Library/LaunchAgents/com.station-availability.dfmg-sar.daily.plist
+]]></ac:plain-text-body></ac:structured-macro>
+<hr>
+<h2 id="monitor-tmux-session-station-availability">Monitor (tmux session: <code>station-availability</code>)</h2>
+<p>Three live panels. Auto-restarts on login via launchd.</p>
+<table>
+<thead>
+<tr>
+<th>Panel</th>
+<th>Content</th>
+<th>Refresh</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (top)</td>
+<td>launchd job status — which jobs loaded, last exit code</td>
+<td>every 10s</td>
+</tr>
+<tr>
+<td>2 (middle)</td>
+<td><strong>Live structured tail of <code>station_availability.log</code></strong> — colour-coded by tag</td>
+<td>streams real-time</td>
+</tr>
+<tr>
+<td>3 (bottom)</td>
+<td>Failure &amp; stale-content checks: errors, partial fetches, Pages-vs-local md5 mismatch, schedule freshness</td>
+<td>every 30s</td>
+</tr>
+</tbody>
+</table>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[tmux attach -t station-availability      # view live
+Ctrl+B then D                            # detach (keeps running)
+bash monitor.sh --kill                   # nuke the session
+bash monitor.sh --detached               # (re-)create session, don't attach
+]]></ac:plain-text-body></ac:structured-macro>
+<h3 id="structured-log-format-panel-2-colour-coding">Structured log format (panel 2 colour coding)</h3>
+<p>Each line: <code>YYYY-MM-DD HH:MM:SS UTC  LEVEL    [TAG] message</code></p>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Colour</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[START]</code> / <code>[COMPLETE]</code> / <code>====</code></td>
+<td>bold green</td>
+<td>run boundaries</td>
+</tr>
+<tr>
+<td><code>[FETCH]</code> / <code>[AGGREGATE]</code></td>
+<td>cyan</td>
+<td>data pipeline</td>
+</tr>
+<tr>
+<td><code>[CACHE]</code></td>
+<td>bright cyan</td>
+<td>cache read/write</td>
+</tr>
+<tr>
+<td><code>[HEADLINE]</code></td>
+<td>bold yellow</td>
+<td>computed KPIs</td>
+</tr>
+<tr>
+<td><code>[OUTPUT]</code></td>
+<td>green</td>
+<td>file generation</td>
+</tr>
+<tr>
+<td><code>[GITHUB]</code></td>
+<td>magenta</td>
+<td>Pages push</td>
+</tr>
+<tr>
+<td><code>[SLACK]</code></td>
+<td>bright blue</td>
+<td>Slack post</td>
+</tr>
+<tr>
+<td><code>[DRY-RUN]</code></td>
+<td>grey</td>
+<td>dry-run skip</td>
+</tr>
+<tr>
+<td><code>ERROR</code> / <code>WARNING</code></td>
+<td>red / yellow</td>
+<td>failure</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="output-pages-urls">Output / Pages URLs</h2>
+<table>
+<thead>
+<tr>
+<th>Local file</th>
+<th>Pages URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dfmg_sar_daily_&lt;YYYYMMDD&gt;.{html,png,csv}</code></td>
+<td><code>https://gianduhina.github.io/station-availability-reports/dfmg_sar_daily_&lt;YYYYMMDD&gt;.html</code></td>
+</tr>
+<tr>
+<td><code>dfmg_sar_weekly_&lt;YYYYWww&gt;.{html,png,csv}</code></td>
+<td><code>.../dfmg_sar_weekly_&lt;YYYYWww&gt;.html</code></td>
+</tr>
+<tr>
+<td><code>dfmg_sar_monthly_&lt;YYYYMM&gt;.{html,png,csv}</code></td>
+<td><code>.../dfmg_sar_monthly_&lt;YYYYMM&gt;.html</code></td>
+</tr>
+<tr>
+<td>(aliases)</td>
+<td><code>.../latest_dfmg_sar_&lt;mode&gt;.&lt;ext&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Slack <code>Full report</code> link</strong> always points to a unique <code>snapshots/.../&lt;utcstamp&gt;.html</code> path so browser/proxy/CDN caches cannot serve stale content.</p>
+<hr>
+<h2 id="path-connections-section-shipped-2026-06-18-refined-2026-06-19">Path Connections section (shipped 2026-06-18, refined 2026-06-19)</h2>
+<p>A per-station section that surfaces <strong>wired↔cellular failover behavior</strong> alongside uptime/downtime. Sits between Emergency Power and the Grid section.</p>
+<h3 id="what-the-columns-mean">What the columns mean</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Source</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>STATION</strong></td>
+<td><code>name</code> label from <code>sar_status_connection_online</code></td>
+<td>Direct</td>
+</tr>
+<tr>
+<td><strong>STATUS</strong></td>
+<td>rules-based classifier on event counters + uptime (see below)</td>
+<td>Derived</td>
+</tr>
+<tr>
+<td><strong>UPTIME</strong></td>
+<td><code>sar_status_connection_online == 1</code> time + inline bar + trend arrow vs T-7</td>
+<td>Direct</td>
+</tr>
+<tr>
+<td><strong>DOWNTIME</strong></td>
+<td><code>sar_status_connection_online == 0</code> time</td>
+<td>Direct</td>
+</tr>
+<tr>
+<td><strong>PRIMARY (WAN)</strong></td>
+<td><code>up_s − cellular_uptime_s</code></td>
+<td>Inferred (depends on #6)</td>
+</tr>
+<tr>
+<td><strong>SECONDARY (cellular · est)</strong></td>
+<td>per-event session timing inferred from <code>sar_alert_connection_state_mdm_total</code> events, capped at 4 h/session</td>
+<td><strong>Estimated</strong> — best-effort, no NetCloud session-data access</td>
+</tr>
+<tr>
+<td><strong>CURRENT</strong></td>
+<td>live <code>sar_status_connection_online</code> value + last-2h event window</td>
+<td>Direct (WAN/Offline) + inferred (Cellular detection)</td>
+</tr>
+</tbody>
+</table>
+<p>Surfaced at the bottom of the section as a <strong>DATA ACCURACY</strong> reference panel so partners see explicit confidence levels per column.</p>
+<h3 id="confidence-labels-what-they-mean">Confidence labels — what they mean</h3>
+<p>The DATA ACCURACY panel labels every column with one of four confidence levels. Understanding the difference is critical for interpreting the report:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>What it means</th>
+<th>Where the answer comes from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>✓ DIRECT</strong></td>
+<td>Observed</td>
+<td>Read straight from a Prometheus gauge or counter at query time. Highest trust.</td>
+</tr>
+<tr>
+<td><strong>↔ INFERRED</strong></td>
+<td>Deduced</td>
+<td>Derived via fixed logic from other DIRECT measurements. Logically correct <em>if</em> its inputs are correct — trace the source chain to gauge trust.</td>
+</tr>
+<tr>
+<td><strong>≈ ESTIMATED</strong></td>
+<td>Approximated</td>
+<td>Numeric best-effort when no direct metric exists. Carries an unknown error margin.</td>
+</tr>
+<tr>
+<td><strong>✗ UNAVAILABLE</strong></td>
+<td>Not knowable</td>
+<td>The data point isn't exposed by any source we can read. Requires upstream work (SAR PR, NetCloud API) before it can be surfaced.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="why-split-inferred-from-estimated">Why split INFERRED from ESTIMATED</h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Inferred</th>
+<th>Estimated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Method</strong></td>
+<td>Boolean / arithmetic logic</td>
+<td>Numeric approximation</td>
+</tr>
+<tr>
+<td><strong>Failure mode</strong></td>
+<td>Wrong only if input is wrong (deterministic chain)</td>
+<td>Wrong by some unknown magnitude even with perfect input (sampling, capping, assumed averages)</td>
+</tr>
+<tr>
+<td><strong>Example</strong></td>
+<td>Primary duration = uptime − cellular</td>
+<td>Cellular session = mdm event → next event, capped at 4 h</td>
+</tr>
+<tr>
+<td><strong>What to do if it looks off</strong></td>
+<td>Audit the input chain</td>
+<td>Check whether the sampling/cap assumption holds</td>
+</tr>
+</tbody>
+</table>
+<h4 id="two-worked-examples-from-this-report">Two worked examples from this report</h4>
+<p><strong>1. Primary (WAN) duration — INFERRED</strong></p>
+<p>There is no Prometheus metric <code>wan_uptime_total</code>. But we know:
+- <code>up_s</code> — total time online (gauge==1) — DIRECT
+- <code>cellular_uptime_s</code> — cellular session time — ESTIMATED</p>
+<p>So we deduce: <code>primary_uptime_s = up_s − cellular_uptime_s</code>. Pure arithmetic. Reliable <em>if</em> the cellular estimate is right.</p>
+<p><strong>2. "Currently on Cellular" detection — INFERRED</strong></p>
+<p>There is no <code>currently_on_cellular_now</code> metric. We reason from three DIRECT signals at query time:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[IF gauge == 1 (online right now)
+AND mdm_2h > 0 (failed over within last 2h)
+AND mdm_2h > online_2h (more failovers than recoveries)
+THEN currently_on_cellular = True
+]]></ac:plain-text-body></ac:structured-macro>
+<p>The deduction is exact, but it can be a false positive if the station already recovered to WAN between the mdm event and report time. That's the kind of trust-chain audit INFERRED data invites.</p>
+<h4 id="practical-takeaway">Practical takeaway</h4>
+<p>When you see an <strong>INFERRED</strong> label on a column, treat the number as "logically correct if its inputs are correct" — look at what the source row says feeds it. The DATA ACCURACY table deliberately names the source for each row so readers can trace inferred → direct dependencies and decide how much to trust the final number.</p>
+<h3 id="status-classifier-rules-first-match-wins">Status classifier rules (first match wins)</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Status</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>up_s + down_s &gt; 0</code> AND <code>up_s &lt; 60s</code></td>
+<td><code>offline-entire-window</code></td>
+<td>Long-silent station — counters look quiet only because router was unreachable to fire any event. Critical fix vs falsely flagging as "stable"</td>
+</tr>
+<tr>
+<td><code>mdm_events == 0</code> AND <code>offline_events == 0</code></td>
+<td><code>stable</code></td>
+<td>No transition events at all</td>
+</tr>
+<tr>
+<td><code>mdm_events == 0</code> AND <code>offline_events &gt; 0</code></td>
+<td><code>outage-no-cellular</code></td>
+<td>Went offline but no failover happened</td>
+</tr>
+<tr>
+<td><code>currently_on_cellular</code> heuristic fires</td>
+<td><code>on-cellular-now</code></td>
+<td>Online + mdm event in last 2h + more mdm than online events</td>
+</tr>
+<tr>
+<td><code>mdm_events ≥ 5</code> AND <code>online_events ≥ mdm_events - 1</code></td>
+<td><code>flapping</code></td>
+<td>Many failovers WITH matching recoveries — chronic cycling</td>
+</tr>
+<tr>
+<td><code>mdm_events ≥ 5</code> AND <code>online_events &lt; mdm_events - 1</code></td>
+<td><code>stuck-degraded</code></td>
+<td>Failovers WITHOUT paired recoveries — sticky on cellular</td>
+</tr>
+<tr>
+<td>else</td>
+<td><code>brief-failover</code></td>
+<td>1–4 failover events, recovered</td>
+</tr>
+</tbody>
+</table>
+<h3 id="caveats-and-current-limitations">Caveats and current limitations</h3>
+<ol>
+<li><strong>Per-SIM split (SIM1 vs SIM2) is not exposed by Prometheus.</strong> Requires a <code>swift-nav/sar</code> PR to scrape per-slot gauges. Until then, "cellular" is a binary.</li>
+<li><strong>Cellular session durations are estimated.</strong> Each mdm event is paired with the next online/offline event, capped at 4 h. Sessions longer than the cap are truncated; phantom-long sessions are not surfaced.</li>
+<li><strong>Finland anomaly (May 2026 monthly).</strong> 14 of 15 Finnish stations classified <code>stuck-degraded</code> while showing <strong>100% availability</strong>. The mdm-event rate in Finland is 5–10× the rest of the fleet for the same observed uptime. Two interpretations: either Finland really is on cellular most of the time (cost story), or NetCloud emits spurious mdm alerts there (counter-semantics story). Distinguishing requires NetCloud Data Usage API access.</li>
+<li><strong>SAR <code>sar_status_connection_online</code> ≠ NTRIP service availability.</strong> SAR measures whether the <strong>NetCloud router</strong> is reachable for management. The station hardware may still be streaming NTRIP via an alternate network path (direct internet, alt-VPN, etc.). For IRCO/HRPL in May 2026, the Grafana <code>orion_ntrip_client_bytes_sum</code> panel shows the station serving data most of the window even though SAR shows ~70%+ downtime. Adel's "Network Unreachable" corroborates SAR (both read the same NetCloud channel). For partner-facing service availability, cross-check with the Orion-bytes panel.</li>
+</ol>
+<h3 id="headline-accounting-sanity-invariant">Headline accounting (sanity invariant)</h3>
+<p>For each station: <code>up_s + down_s = window_seconds</code>. The split is then:
+- <code>primary_uptime_s = up_s − cellular_uptime_s</code>  (time online via WAN)
+- <code>cellular_uptime_s</code> ≤ <code>up_s</code>  (cellular only when ALSO online)
+- <code>down_s</code> = fully offline (both paths failed)</p>
+<p>CURRENT-column distribution should equal the production-station count exactly (e.g., May 2026 monthly: 244 WAN + 5 Offline + 1 Cellular = 250 prod).</p>
+<hr>
+<h2 id="regional-report-shipped-2026-06-20-polished-2026-06-21">Regional report (shipped 2026-06-20, polished 2026-06-21)</h2>
+<p>A multi-region twin of the DFMG production report covering <strong>NA / EU / AP +
+an All Regions overview</strong>. Default dropdown view = "All Regions - Overview";
+drill into a specific region via the tab selector at the top.</p>
+<h3 id="why-it-exists">Why it exists</h3>
+<p>The DFMG report covers 250 production stations in EU. Swift has ~700
+production stations across NA + EU + AP. Before this report there was no
+single view that let an executive scan "how healthy is the fleet by region?"
+without running each region's roster manually.</p>
+<h3 id="region-inventory-production-filter-applied-2026-06-20-audit">Region inventory (Production filter applied, 2026-06-20 audit)</h3>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Stations</th>
+<th>Customers (count)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NA</strong></td>
+<td>330</td>
+<td>Swift 261 (USA) · Telus 69 (CAN) — Swift's CAN station <code>ABCG</code> overridden to Telus</td>
+</tr>
+<tr>
+<td><strong>EU</strong></td>
+<td>251</td>
+<td>DFMG 250 (22 European countries) · Swift 1 (LVA test). UAE/Etisalat folds into EU (EMEA convention) — currently 0 prod</td>
+</tr>
+<tr>
+<td><strong>AP</strong></td>
+<td>116</td>
+<td>KDDI 62 (JPN) · KT 20 + SKT 20 (KOR) · TaiwanMobile 18 (TWN) · Singtel 4 (SGP) · Airtel 5 (IND, currently non-prod)</td>
+</tr>
+<tr>
+<td><strong>All Regions</strong></td>
+<td>697</td>
+<td>Aggregated overview only</td>
+</tr>
+</tbody>
+</table>
+<h3 id="country-region-mapping">Country → region mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>ISO-3 codes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NA</td>
+<td>USA, CAN, MEX, BRA, PER, ARG, ECU, URY, GUF, CUW (Americas)</td>
+</tr>
+<tr>
+<td>EU</td>
+<td>AUT, BGR, CZE, DNK, DEU, ESP, FIN, FRA, GBR, GRC, HRV, HUN, IRL, ITA, LVA, LTU, EST, NLD, NOR, POL, PRT, ROU, SVK, SVN, SWE, CHE, BEL, LUX, ISL, MLT, CYP, ALB, BIH, MKD, MNE, SRB, UKR, BLR, MDA, <strong>ARE</strong> (UAE folded in), <strong>ZAF/GHA/MOZ/NAM/CPV</strong> (Africa folded in via EMEA convention)</td>
+</tr>
+<tr>
+<td>AP</td>
+<td>JPN, KOR, TWN, SGP, IND, CHN, HKG, MAC, MYS, THA, VNM, PHL, IDN, AUS, NZL, MNG, NPL, UZB, MUS, FJI, NCL, PYF</td>
+</tr>
+</tbody>
+</table>
+<p>One-off overrides (until upstream Prometheus labels are corrected):
+- <code>ABCG</code> (Swift CAN station): customer remapped Swift → Telus
+- <code>ATGJ</code> (Airtel station with missing country label): country defaulted to IND</p>
+<h3 id="filters">Filters</h3>
+<p>A station enters the report only if it has BOTH:
+1. SAR (<code>sar_status_connection_online</code>) OR Orion (<code>orion_num_obs_cors_sum</code>) telemetry in the last 30 days
+2. <code>edge_sitetracker_noc_status == 1</code> (production rotation)</p>
+<p>This drops 240 of 949 roster sites — mostly Swift reference receivers
+(<code>RX-*</code>, <code>CDDIS-*</code>, <code>SAPOS-*</code>) that don't have NetCloud monitoring.</p>
+<h3 id="hybrid-per-region-cache">Hybrid per-region cache</h3>
+<p>Mirrors production's pattern with region-specific filenames:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[cache/sar_daily_region_NA_<date>.json
+cache/sar_daily_region_EU_<date>.json
+cache/sar_daily_region_AP_<date>.json
+cache/sar_daily_region_ALL_<date>.json
+]]></ac:plain-text-body></ac:structured-macro>
+<p>The NA/EU/AP caches are shared between <code>regions_stationavailability.py</code> and
+<code>BETA_TESTING_regions.py</code>. The ALL cache aggregates everything.</p>
+<p>Rebuild a date range with <code>--rebuild-cache YYYY-MM-DD</code> / <code>YYYY-MM</code> / <code>Nd</code>.</p>
+<h3 id="all-regions-overview-view">All Regions overview view</h3>
+<p>Default view when the report opens. Shows:
+- Brand bar + dropdown selector (sticky)
+- Executive summary line (1 sentence — "All Regions sustained X% availability across 697 stations …")
+- 4 KPI tiles (Availability, Had Downtime, Downtime %, Data Window)
+- Station Health panel (Uptime/Downtime split + station lists)
+- Emergency Power 3-tile grid + Power Infrastructure Health
+- Path Connections 6 KPI tiles</p>
+<p><strong>Detail sections intentionally stripped from the overview</strong> (per partner UX):
+- Per-station uptime/downtime bars
+- Silent Stations table
+- EMERGENCY POWER · affected sites table
+- ADVISORY bar
+- Trend legend + per-station Path Connections table
+- DATA ACCURACY panel
+- STATUS GUIDE table</p>
+<p>Per-region tabs (NA / EU / AP) keep the full detail.</p>
+<hr>
+<h2 id="light-dark-theme-swift-navigation-branding-2026-06-21">Light / dark theme + Swift Navigation branding (2026-06-21)</h2>
+<p>Both <code>dfmg_sar_availability.py</code> and <code>regions_stationavailability.py</code> now ship
+with a Swift-branded report:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dark navy header band</strong></td>
+<td>gradient <code>#0f1a2a → #1a2332 → #232f44</code> with 4px Swift-orange bottom border</td>
+</tr>
+<tr>
+<td><strong>Swift Navigation logo</strong></td>
+<td>embedded as base64 PNG from <code>assets/swift_nav_logo.png</code> (58 px tall)</td>
+</tr>
+<tr>
+<td><strong>Report title</strong></td>
+<td>"DFMG Station Availability" / "Regional Station Availability" · 24 px / weight 800 / white</td>
+</tr>
+<tr>
+<td><strong>Dark navy footer band</strong></td>
+<td>mirrors header, includes generation timestamp</td>
+</tr>
+<tr>
+<td><strong>Theme toggle</strong></td>
+<td>sun/moon button in top-right of brand bar — switches dark ↔ light for the current session only</td>
+</tr>
+<tr>
+<td><strong>Hard-defaulted to dark</strong></td>
+<td>every page load starts in dark mode. <code>localStorage</code> intentionally NOT used so partners see consistent default regardless of prior viewer's toggle.</td>
+</tr>
+<tr>
+<td><strong>Sentence-case headers</strong></td>
+<td>JS <code>HEADER_REWRITES</code> table rewrites production's ALL-CAPS strings on <code>DOMContentLoaded</code> (e.g. "DURATION OF EMERGENCY POWER · per station · ..." → "Emergency power — time on backup battery, per station")</td>
+</tr>
+<tr>
+<td><strong>Partner-friendly metric names</strong></td>
+<td>"SAR Station Health" → "Station Health". "SAR Connection Online" → "Connectivity Status". Technical metric-name chips hidden via CSS.</td>
+</tr>
+<tr>
+<td><strong>Methodology banner</strong></td>
+<td>dropped from display. Technical jargon belongs in this README, not the partner-facing summary.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="light-mode-contrast-hardening">Light-mode contrast hardening</h3>
+<p>In light mode, ALL text is forced to <strong>pure <code>#000000</code></strong> with extra-heavy
+font-weights:
+- <code>h1</code> / <code>h2</code>: weight 900
+- <code>h3</code> / section titles / KPI labels: weight 800
+- Body text / KPI subtitles / table cells: weight 700
+- Station name bars: weight 800
+- KPI big numbers: weight 900 (semantic accent color preserved)</p>
+<p>Three layers of CSS specificity ensure these rules always win:
+1. <code>body.light-mode .X</code> (when JS has applied the class)
+2. <code>body:not(.dark-mode) .X</code> (default state before JS runs)
+3. Direct selector fallbacks</p>
+<p>WCAG verified: <code>#000000</code> on white ≈ 21:1 contrast (AAA-grade).</p>
+<h3 id="dark-mode-palette">Dark-mode palette</h3>
+<p>Background <code>#0a0e15</code> · card <code>#14202e</code> · text <code>#f0f4f8</code>. Status colors
+brightened for proper contrast on dark: green <code>#4ade80</code>, red <code>#f87171</code>,
+blue <code>#60a5fa</code>, yellow <code>#fcd34d</code>. Trend arrows, badges, code spans all
+re-themed.</p>
+<hr>
+<h2 id="known-limitations-and-open-issues">Known limitations and open issues</h2>
+<h3 id="resolved-2026-06-13-schema-v2-cycle">✅ Resolved 2026-06-13 (schema v2 cycle)</h3>
+<ol>
+<li>
+<p><strong>Cross-midnight outage boundary handling</strong> — fixed. v2 cache stores raw event timestamps; merger re-pairs backup→grid events across the full multi-day window. Adel outage_windows separated by less than 120 s are merged automatically. A 23:55→02:30 outage now reports as one continuous ~2 h 35 min event.</p>
+</li>
+<li>
+<p><strong><code>recent_silent</code> per-day boundary</strong> — fixed. Spurious correction + station-dark classifier are applied at merge/render time using <strong>window-end</strong> <code>recent_silent</code>, not baked in per-day.</p>
+</li>
+<li>
+<p><strong>No cache invalidation policy</strong> — partially addressed via T-1 auto-regen (catches yesterday's bad caches automatically) + <code>--rebuild-cache</code> manual flag (covers any range). For deeper-history corruption beyond Prometheus retention, no recovery is possible regardless of script behaviour.</p>
+</li>
+</ol>
+<h3 id="still-open">Still open</h3>
+<ol>
+<li>
+<p><strong>No continuous APC presence/health metric.</strong> Adel sites are observable continuously; APC sites are only observable on transitions. Closing this gap requires a PR to <code>swift-nav/sar</code> to scrape GPIO 4 ("APC UPS is Connected") and GPIO 3 ("Battery State is Normal/Charging") from the IBR600C router.</p>
+</li>
+<li>
+<p><strong>NetCloud delivery latency floor.</strong> Real timing accuracy is bounded by NetCloud's own alert delivery (~30–60 s), so even 1-min sampling can't claim sub-30 s precision. The 60s step approaches this floor; finer steps would not help.</p>
+</li>
+<li>
+<p><strong><code>stations_exporter_endpoint_alive</code> is a dead metric.</strong> Registered in the Prometheus catalog but has produced no samples in 90+ days; the exporter's endpoint-probing subsystem appears disabled. Not used by the script.</p>
+</li>
+<li>
+<p><strong>Active Thanos cluster topology is hard-coded.</strong> <code>PASSIVE_THANOS_CLUSTERS = {"eu2"}</code> at the top of the cache section. If the active/passive flips again (or the topology changes to include more clusters), update this set so <code>[PROM-PASSIVE]</code> warnings are correctly tagged.</p>
+</li>
+<li>
+<p><strong>Cross-midnight Adel outage merge threshold is fixed at 120 s.</strong> Two distinct Adel outages that happen to start within 2 minutes of each other across a midnight boundary would be incorrectly fused. Extremely rare in practice; acceptable tradeoff vs. complexity of finer heuristics.</p>
+</li>
+</ol>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Slack post failed: 400 invalid_blocks</code></td>
+<td>Pages CDN didn't propagate before Slack tried to embed</td>
+<td>Script auto-waits via <code>wait_for_url</code> up to 2h; otherwise text-only post</td>
+</tr>
+<tr>
+<td><code>Full report</code> link in Slack shows old content</td>
+<td>Browser/proxy/CDN cache</td>
+<td>Should not happen now — snapshot URLs are unique per publish</td>
+</tr>
+<tr>
+<td>Headline <code>Availability 0.0000% · 0/0 affected</code></td>
+<td>Grafana historical query returning empty (Thanos hiccup)</td>
+<td>Wait + retry; script doesn't crash</td>
+</tr>
+<tr>
+<td>Recent stations missing from report</td>
+<td>Filter mismatch</td>
+<td>Authoritative roster fetched at run time — should always be current</td>
+</tr>
+<tr>
+<td>Panel 3 schedule-freshness ⚠</td>
+<td>Mac was off during fire time</td>
+<td><code>launchctl start &lt;job&gt;</code> manually</td>
+</tr>
+<tr>
+<td>Weekly/monthly emergency-power total looks suspiciously high</td>
+<td>Pre-hybrid run (single 30-day query) inflated by phantom unpaired events</td>
+<td>Re-run with hybrid; cross-check FRMG, FRBE</td>
+</tr>
+<tr>
+<td><code>[CACHE] N day(s) cached · M day(s) need gap-fill</code></td>
+<td>Some daily caches missing</td>
+<td>Normal during backfill; gap-fill writes them</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="setup-one-time">Setup (one-time)</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[pip3 install requests
+# Headless Chrome (already present if you have Google Chrome.app)
+]]></ac:plain-text-body></ac:structured-macro>
+<h3 id="tokens-already-embedded-as-defaults-override-via-env">Tokens (already embedded as defaults; override via env)</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GRAFANA_API_KEY</code></td>
+<td>Thanos read access via Grafana proxy</td>
+</tr>
+<tr>
+<td><code>GITHUB_TOKEN</code></td>
+<td>Push commits to <code>GianDuhina/station-availability-reports</code></td>
+</tr>
+<tr>
+<td><code>SLACK_WEBHOOK</code></td>
+<td><code>#testing-scripts</code> incoming webhook</td>
+</tr>
+</tbody>
+</table>
+<h3 id="loading-the-launchd-schedules">Loading the launchd schedules</h3>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[for p in ~/Library/LaunchAgents/com.station-availability.*.plist; do
+  launchctl unload "$p" 2>/dev/null
+  launchctl load "$p"
+done
+launchctl list | grep station-availability    # verify
+]]></ac:plain-text-body></ac:structured-macro>
+<h3 id="starting-the-monitor">Starting the monitor</h3>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="language">bash</ac:parameter><ac:plain-text-body><![CDATA[bash monitor.sh
+# Detach with Ctrl+B D — session stays alive in the background.
+# Re-attach later: tmux attach -t station-availability
+]]></ac:plain-text-body></ac:structured-macro>
+<hr>
+<h2 id="architecture-file-layout-post-2026-06-19-reorg">Architecture (file layout, post 2026-06-19 reorg)</h2>
+<ac:structured-macro ac:name="code" ac:schema-version="1"><ac:plain-text-body><![CDATA[station-availability/
+├── README.md                                ← this file
+├── monitor.sh                               ← tmux session bootstrap
+├── _panel_realtime.sh                       ← panel 2 — live log tail w/ colour
+├── _panel_failures.sh                       ← panel 3 — failures + stale-content checks
+├── station_availability.log                 ← structured UTC + [TAG] log
+├── assets/
+│   └── swift_nav_logo.png                   ← Swift Navigation brand logo (base64-embedded in reports)
+├── cache/                                   ← hybrid cache layer
+│   ├── sar_daily_dfmg_<YYYY-MM-DD>.json     ← DFMG (production)
+│   ├── sar_daily_region_NA_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_EU_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_AP_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_ALL_<YYYY-MM-DD>.json
+│   └── publish_queue.json                   ← failed-push retry queue
+├── scripts/                                 ← ALL Python scripts (since 2026-06-19)
+│   ├── dfmg_sar_availability.py             ← DFMG production
+│   ├── regions_stationavailability.py       ← Regional production
+│   ├── station_availability.py              ← shared plumbing module
+│   ├── BETA_TESTING.py                      ← BETA twin for DFMG experiments
+│   ├── BETA_TESTING_regions.py              ← BETA twin for regional experiments
+│   ├── dfmg_availability.py                 ← deprecated 3-metric variant
+│   └── station_check.py                     ← ad-hoc CLI diagnostic
+├── dfmg_sar_<mode>_<stamp>.{html,png,csv}   ← DFMG generated reports
+└── regions_stationavailability_<mode>_<stamp>.{html,png,csv}
+]]></ac:plain-text-body></ac:structured-macro>
+<p>The <code>BASE_DIR</code> walk-up in <code>scripts/station_availability.py</code> ensures generated
+files, caches, and logs land at the project root regardless of where the
+script is run from.</p>
+<hr>
+<h2 id="reference-swift-navsar-source">Reference: swift-nav/sar source</h2>
+<p><code>https://github.com/swift-nav/sar</code> (private) is the actual SAR exporter codebase, renamed
+internally to <strong>Station Monitoring Service</strong>. Key files for our purposes:</p>
+<ul>
+<li><code>station_monitoring/lib/metrics.py</code> — <code>class Status: TRUE=1, FALSE=0, UNKNOWN=-1</code></li>
+<li><code>station_monitoring/netcloud/alert.py</code> — NetCloud alert message string constants</li>
+<li><code>helm/station_monitoring/dashboards/common/*.json</code> — canonical Grafana dashboards
+  (router-status, single-router-overview, etc.)</li>
+</ul>
+<p>The recording rules used by the canonical <code>router-connectivity-30-day-report.json</code>
+(<code>name:sar_status_connection_online:avg_over_30d_by_1m_max</code> etc.) live only in the
+dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyback on them.</p>
+<hr>
+<h2 id="project-journey-what-weve-tackled">Project journey — what we've tackled</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial build</td>
+<td>Multi-partner script (<code>station_availability.py</code>), then DFMG-specific 3-metric (<code>dfmg_availability.py</code>), then SAR-only production script (<code>dfmg_sar_availability.py</code>)</td>
+</tr>
+<tr>
+<td>Authoritative roster</td>
+<td>Replaced country-suffix heuristic (<code>DFMG-EU</code>, 92% accurate) with <code>edge_sitetracker_site_status{customer="DFMG"}</code> (262 sites, authoritative)</td>
+</tr>
+<tr>
+<td>Silent-station diagnostics</td>
+<td>NetCloud alert event counters mapped to human-readable headlines</td>
+</tr>
+<tr>
+<td>Production vs non-prod split</td>
+<td><code>edge_sitetracker_noc_status</code> drives header/silenced/non-prod sectioning</td>
+</tr>
+<tr>
+<td>Hardware-tier awareness</td>
+<td><code>power_management_dcups</code> separates Adel (174) from APC INFRA LITE (88); each tier measured via its own data source</td>
+</tr>
+<tr>
+<td>Precision investigation</td>
+<td>Identified that APC outage durations were stuck at 5-min precision on monthly due to Prometheus' 11k-point cap</td>
+</tr>
+<tr>
+<td><strong>Autotune step fix</strong></td>
+<td>Replaced hardcoded <code>step_s=300</code> with <code>_autotune_step()</code> — daily/weekly now 60s, monthly stays safe</td>
+</tr>
+<tr>
+<td><strong>Hybrid cache + live</strong></td>
+<td>Daily runs write per-day JSON cache; weekly/monthly read cache + gap-fill from Prometheus → 1-min precision at all window sizes</td>
+</tr>
+<tr>
+<td>Phantom outage discovery</td>
+<td>Pre-hybrid monthly inflated unpaired events into multi-day phantoms (FRMG 5d 9h, FRBE 1d 18h). Hybrid eliminates this class of bug.</td>
+</tr>
+<tr>
+<td>Validated end-to-end</td>
+<td>May 2026 backfill: 31 dailies cached (818 KB total), 5 weeklies (W18 used 4-day gap-fill), monthly stitched from 31 cached days in 70 s</td>
+</tr>
+<tr>
+<td><strong>Schema v2</strong> (2026-06-13)</td>
+<td>Raw event timestamps stored per-day so weekly/monthly merger re-pairs backup→grid events <strong>across midnight boundaries</strong>. Spurious correction moved to merge time. Fixes cross-midnight outage undercount.</td>
+</tr>
+<tr>
+<td><strong>Battery-exhausted-dark classifier</strong></td>
+<td>New 3rd classification: when <code>battery_exhausted ≥ 1</code> AND station is in <code>recent_silent</code>, duration is capped at UPS battery life instead of being thrown away as uncertain. Recovers signal we previously lost.</td>
+</tr>
+<tr>
+<td><strong>T-1 auto-regen + <code>--rebuild-cache</code></strong></td>
+<td>Daily mode sanity-checks yesterday's cache; missing or undersized cache auto-spawns a regen subprocess. Manual <code>--rebuild-cache</code> flag covers any range (YYYY-MM-DD / YYYY-MM / Nd).</td>
+</tr>
+<tr>
+<td><strong>Cluster-failover resilience</strong></td>
+<td>After 2026-06-10 eu-prod-1↔eu-prod-2 active/passive flip exposed instant-query fragility, <code>fetch_adel_equipped_sites</code> now uses <code>last_over_time[7d]</code> and <code>fetch_global_nonprod_sites</code> uses <code>[24h]</code>. Prometheus warnings surface as <code>[PROM-WARN]</code> / <code>[PROM-PASSIVE]</code> in logs.</td>
+</tr>
+<tr>
+<td><strong>Methodology banner</strong></td>
+<td>Beta-marked banner now rendered at the top of every report explaining the precision improvements + reclassification logic, until stakeholders are aligned and the banner is opted-out via <code>DFMG_HIDE_METHODOLOGY=1</code>.</td>
+</tr>
+<tr>
+<td><strong>Monitor panel 3 cache section</strong></td>
+<td><code>_panel_failures.sh</code> extended with yesterday's cache presence, 7-day coverage, schema-drift detection, and <code>[PROM-PASSIVE]</code>/<code>[PROM-WARN]</code> tail.</td>
+</tr>
+<tr>
+<td>Validated end-to-end (v2)</td>
+<td>May 2026 re-rebuilt to v2 (31 dailies, 828 KB). Launchd-fired daily for 2026-06-11: T-1 sanity check (healthy → skipped), main daily completed in ~3 min including Pages publish + Slack post, methodology banner visible on Pages.</td>
+</tr>
+<tr>
+<td><strong>Path Connections section</strong> (2026-06-18)</td>
+<td>Per-station wired↔cellular failover surfacing. Status classifier (7 categories), trend arrows vs T-7 baseline, primary/secondary duration columns, CURRENT (WAN/Cellular/Offline) column. Cellular durations estimated via per-mdm-event session timing capped at 4h.</td>
+</tr>
+<tr>
+<td><strong>Publish queue + morning drain</strong></td>
+<td>GitHub API timeouts at the 23:00 PHT slot (VPN session expiry) caused 6 stuck reports between 2026-06-15 and 2026-06-17. Added a <code>cache/publish_queue.json</code> write-when-fail mechanism + <code>--drain-publish-queue</code> flag + 09:00 PHT launchd job that retries pending pushes when the VPN is fresh. Recovered all 6 backlogged reports automatically.</td>
+</tr>
+<tr>
+<td><strong><code>offline-entire-window</code> classifier fix</strong> (2026-06-19)</td>
+<td>Stations with &lt;60s of uptime in the window were falsely labelled "stable" because their counters looked quiet (router never reachable to fire events). Added an explicit pre-check on <code>up_s</code> so silent stations correctly surface as warning-color OFFLINE rows. Caught 4 stations in 2026-06-18 daily (FIJM0xFIN, FRMG0xFRA, HUVE0xHUN, RONA0xROU).</td>
+</tr>
+<tr>
+<td><strong>UX refinements</strong> (2026-06-19)</td>
+<td>STATUS GUIDE moved to bottom of Path Connections (reference position vs upfront). Removed redundant exec summary banner (info already in KPI tiles). Added trend-arrow legend above per-station table. Zero-uptime cells show <code>0s</code> instead of <code>—</code> (disambiguates "no data" vs "nothing was up"). DATA ACCURACY panel added — explicit confidence label (direct / inferred / estimated / unavailable) per visible column.</td>
+</tr>
+<tr>
+<td><strong>SAR vs Orion-bytes mismatch surfaced</strong> (2026-06-19)</td>
+<td>Cross-checking IRCO/HRPL May 2026 against Grafana's <code>orion_ntrip_client_bytes_sum</code> revealed the two metrics measure different observation points: SAR sees the NetCloud control channel, Orion sees actual NTRIP byte flow. A station can be "down" per SAR while still serving NTRIP via an alternate network path. Documented in the Path Connections caveats.</td>
+</tr>
+<tr>
+<td>Validated end-to-end (Phase 3)</td>
+<td>May 2026 monthly republished 2026-06-19 with new layout. 250 prod stations, 97.6572% availability, current-connection distribution (244 WAN / 5 Offline / 1 Cellular = 250) matches production count exactly. STATUS GUIDE counts sum correctly after subtracting the legend rows.</td>
+</tr>
+<tr>
+<td><strong>Scripts reorg</strong> (2026-06-19)</td>
+<td>All 5 <code>.py</code> files moved into <code>scripts/</code> subfolder for clean repo layout. <code>BASE_DIR</code> walk-up added to <code>station_availability.py</code> so reports / cache / log still land at project root. 4 launchd plists updated to point at <code>scripts/dfmg_sar_availability.py</code>. Backups saved as <code>*.bak.20260619</code>.</td>
+</tr>
+<tr>
+<td><strong>Regional Station Availability</strong> (2026-06-20)</td>
+<td>New <code>regions_stationavailability.py</code> produces NA / EU / AP / All-Regions rollup with full feature parity to DFMG production. Country → region mapping with overrides (ABCG → Telus, ATGJ → IND). SAR/orion + <code>noc_status==1</code> filters applied. Per-region hybrid cache (<code>sar_daily_region_&lt;ALL\|NA\|EU\|AP&gt;_&lt;date&gt;.json</code>). May 2026 rebuild took 1h 18m for 93 region-day caches (~3.5× DFMG's 22m). May headline: NA 330 / EU 251 / AP 116 production stations. EU matches DFMG exactly (84 affected, 259879 min down).</td>
+</tr>
+<tr>
+<td><strong>BETA sandbox split</strong> (2026-06-19/20)</td>
+<td><code>BETA_TESTING.py</code> (DFMG) + <code>BETA_TESTING_regions.py</code> (regional). Outputs use <code>BETA_</code> filename prefix so production reports are never overwritten. Title badge shows "· BETA"; logger names distinct. Pattern: experiment in BETA → smoke-test → merge to production once proven.</td>
+</tr>
+<tr>
+<td><strong>Multi-disciplinary lens commitment</strong> (2026-06-20)</td>
+<td>Foundational instruction: every session and every process is approached through ALL professional lenses — web dev, software dev, graphic designer, graphic artist, UX, accessibility, technical writer, brand — not just code-correctness. Visual + brand + UX checks before shipping any change. Saved as <code>feedback_multi_disciplinary_lens.md</code> in auto-memory.</td>
+</tr>
+<tr>
+<td><strong>All-Regions overview view</strong> (2026-06-20)</td>
+<td>Default dropdown option in <code>regions_stationavailability.py</code>. Aggregates NA + EU + AP into one rollup (~697 production stations) and STRIPS per-station detail (uptime/downtime bars, silent table, emergency per-site table, ADVISORY bar, trend legend, Path Connections per-station table, DATA ACCURACY, STATUS GUIDE) — keeps only the high-level KPI tiles + Power Infrastructure Health for executive scan. Per-region tabs (NA / EU / AP) retain full detail.</td>
+</tr>
+<tr>
+<td><strong>Swift Navigation light theme</strong> (2026-06-21)</td>
+<td>Light theme with Swift brand colors (orange <code>#f26522</code>, red <code>#e63027</code>, navy <code>#1a2332</code>). Dark navy header band with embedded real PNG logo (58 px) + report title (24 px / weight 800). Sentence-case headers via JS rewrite. Partner-friendly metric renames (Station Health, Connectivity Status). Methodology banner dropped from display.</td>
+</tr>
+<tr>
+<td><strong>Dark mode + toggle</strong> (2026-06-21)</td>
+<td>Sun/moon toggle button in brand bar. Dark default = page bg <code>#0a0e15</code>, cards <code>#14202e</code>, text <code>#f0f4f8</code>. Brightened status colors for dark-bg contrast (green <code>#4ade80</code>, red <code>#f87171</code>, blue <code>#60a5fa</code>, yellow <code>#fcd34d</code>). Pre-<code>&lt;body&gt;</code> inline script prevents flash-of-wrong-theme. Hard-defaulted to dark on every page load — <code>localStorage</code> not used, so partners see consistent default. Toggle is session-only. Applied to both DFMG and regional scripts.</td>
+</tr>
+<tr>
+<td><strong>Pure-black + extra-bold light mode</strong> (2026-06-21)</td>
+<td>After multiple iterations of "still too light" feedback: ALL light-mode text forced to <code>#000000</code> with weights 700-900 (was <code>#0a0e15</code> at 500-700). Three-layer CSS specificity insurance (<code>body.light-mode</code>, <code>body:not(.dark-mode)</code>, direct selectors) guarantees rules win cascade. WCAG AAA verified (21:1 contrast on white).</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>Last reviewed: 2026-06-21 · Regional report shipped · Light/dark themes with Swift branding · Sentence-case headers · Hard-dark default · Pure-black light mode · Scripts in <code>scripts/</code> subfolder · schema v2 · cluster-failover-resilient · T-1 auto-regen on</em></p>
+</ac:confluence>
