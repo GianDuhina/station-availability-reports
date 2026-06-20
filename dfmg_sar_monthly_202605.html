@@ -252,22 +252,255 @@
 
  .empty { color:var(--muted); padding:10px; font-size:11px; }
  .footer { color:var(--muted); font-size:10px; margin-top:24px; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    LIGHT / DARK THEME SKIN — applied 2026-06-21 to match the regional report.
+    Default theme is dark; toggle button in the brand bar swaps to light.
+    Sentence-case headers via JS rewrite. Black + bold text for accessibility.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ :root {
+   --bg:      #f6f7fa;
+   --panel:   #ffffff;
+   --panel2:  #f9fafb;
+   --border:  #e3e6ec;
+   --text:    #0a0e15;
+   --muted:   #1a2332;
+   --subtle:  #1a2332;
+   --swift-orange: #f26522;
+   --swift-red:    #e63027;
+   --swift-navy:   #1a2332;
+ }
+ body {
+   background: var(--bg); color: var(--text);
+   font-size: 15px; line-height: 1.55; margin: 0; padding: 0;
+   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   -webkit-font-smoothing: antialiased; scroll-behavior: smooth;
+ }
+
+ /* ─── Brand bar (top) ─── */
+ .top-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   padding: 28px 40px;
+   border-bottom: 4px solid var(--swift-orange);
+   box-shadow: 0 4px 12px rgba(15,26,42,0.18);
+ }
+ .top-band .brand-bar {
+   display: flex; align-items: center; gap: 22px;
+   max-width: 1600px; margin: 0 auto;
+ }
+ .top-band .brand-logo { display: inline-flex; align-items: center; }
+ .top-band .brand-logo img.brand-mark-img {
+   height: 58px; width: auto; display: block;
+ }
+ .top-band .report-meta {
+   display: flex; flex-direction: column; justify-content: center;
+   padding-left: 22px; margin-left: 16px;
+   border-left: 1px solid rgba(255,255,255,0.18); min-height: 50px;
+ }
+ .top-band .report-title {
+   color: #ffffff; font-size: 24px; font-weight: 800;
+   letter-spacing: -0.015em; line-height: 1.15;
+ }
+ .top-band .report-period {
+   color: #c5cfde; font-size: 14px; font-weight: 500;
+   margin-top: 5px; letter-spacing: 0.01em;
+ }
+ .top-band .spacer { flex: 1; }
+ .top-band .legend {
+   display: inline-flex; align-items: center; gap: 8px;
+   font-size: 11px; color: #d4dae6;
+ }
+ .top-band .legend .swatch {
+   display:inline-block; width:11px; height:11px; border-radius:3px;
+   margin-right:3px; box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+ }
+ .theme-toggle {
+   width: 36px; height: 36px;
+   display: inline-flex; align-items: center; justify-content: center;
+   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+   border-radius: 8px; color: #ffffff; font-size: 16px; cursor: pointer;
+   transition: background 200ms ease, transform 80ms ease; margin-left: 10px;
+ }
+ .theme-toggle:hover { background: rgba(255,255,255,0.14); }
+ .theme-toggle:active { transform: scale(0.94); }
+ .theme-toggle .icon-sun { display: none; }
+ .theme-toggle .icon-moon { display: inline; }
+ body.dark-mode .theme-toggle .icon-sun { display: inline; }
+ body.dark-mode .theme-toggle .icon-moon { display: none; }
+
+ /* ─── Main content wrapper ─── */
+ .content { max-width: 1600px; margin: 0 auto; padding: 28px 36px 12px; }
+
+ /* ─── Footer band ─── */
+ .footer-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   color: #b8c2d4; padding: 24px 36px; margin-top: 48px;
+   border-top: 4px solid var(--swift-orange);
+ }
+ .footer-band .footer-inner {
+   max-width: 1600px; margin: 0 auto;
+   display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+   font-size: 11.5px; line-height: 1.6;
+ }
+ .footer-band .footer-brand {
+   display: inline-flex; align-items: center; gap: 10px;
+   color: #ffffff; font-weight: 600; font-size: 13px;
+ }
+ .footer-band .footer-brand img { height: 34px; width: auto; opacity: 0.95; }
+ .footer-band .spacer { flex: 1; }
+ .footer-band code { background: rgba(255,255,255,0.08) !important;
+                       color: #d4dae6 !important; }
+
+ /* ─── Cards: softened borders + shadow ─── */
+ .row1 .panel, .path-kpi, .row1b .panel, .metric-block, .silent-panel,
+ .status-rundown, .accuracy-panel, .country-panel, .methodology-banner {
+   background: #ffffff !important;
+   border: 1.5px solid #d1d6df !important;
+   border-radius: 14px !important;
+   box-shadow: 0 2px 6px rgba(15,26,42,0.08) !important;
+ }
+
+ /* Header rule overrides — sentence case via JS, but kill text-transform */
+ h1, h2, h3, h2 * { text-transform: none !important;
+                      letter-spacing: -0.01em !important;
+                      color: #0a0e15 !important; font-weight: 800 !important; }
+ h2 { font-size: 22px !important; margin: 36px 0 10px !important; }
+
+ /* All secondary text black + bold */
+ .row1 .kpi-label, .path-kpi .lbl, .accuracy-table thead th,
+ .row1b .panel .header .title, .metric-title, .status-rundown-title {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+ .row1 .kpi-sub, .row1 .kpi-sub *, .section-sub, .section-sub *,
+ .path-kpi .pct, .accuracy-table .acc-notes,
+ .row1b .panel .stat .ct, .row1b .panel .stat .lbl,
+ .status-rundown-table .rundown-desc, .status-rundown-table .rundown-count,
+ .trend-legend, .trend-legend * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .row1 .kpi-value { font-weight: 800 !important; }
+ .path-kpi .val   { font-weight: 800 !important; }
+
+ /* Per-station bar rows */
+ .station-row .nm { color: #0a0e15 !important; font-weight: 700 !important; }
+ .station-row .barwrap { background: #eef0f4 !important; border: 1px solid #e3e6ec !important; }
+ .station-row .timing { color: #0a0e15 !important; font-weight: 600 !important; }
+ .station-row .timing .up { color: #0f6033 !important; font-weight: 800 !important; }
+ .station-row .timing .dn { color: #a72f12 !important; font-weight: 800 !important; }
+ .station-row .timing .dn.zero { color: #1a2332 !important; }
+
+ /* Path table */
+ .path-table tbody td, .path-table tbody td * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .path-table .pc-status.pc-ok    { color: #0f6033 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-warn  { color: #a72f12 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-info  { color: #1d4ed8 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-mild  { color: #92400e !important; font-weight: 800 !important; }
+ .path-table th { color: #0a0e15 !important; background: #eef0f4 !important;
+                    font-weight: 700 !important; }
+
+ /* Hide technical metric tag names — partner-facing report shouldn't show them */
+ .row1b .panel .header .tag, .metric-block .metric-tag,
+ .metric-block .metric-header .metric-tag { display: none !important; }
+
+ /* Code spans */
+ code { color: #0a4a8f !important; background: #e0eaf7 !important;
+         font-weight: 600 !important; border-radius: 4px; padding: 2px 6px; }
+
+ /* ─── DARK MODE ─── */
+ body.dark-mode {
+   --bg: #0a0e15; --panel: #14202e; --panel2: #1a2734;
+   --border: #2a3343; --text: #f0f4f8; --muted: #b8c2d4; --subtle: #8a93a0;
+   background: var(--bg); color: var(--text);
+ }
+ body.dark-mode .top-band, body.dark-mode .footer-band {
+   background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%) !important;
+ }
+ body.dark-mode .row1 .panel, body.dark-mode .path-kpi,
+ body.dark-mode .row1b .panel, body.dark-mode .metric-block,
+ body.dark-mode .silent-panel, body.dark-mode .accuracy-panel,
+ body.dark-mode .status-rundown, body.dark-mode .methodology-banner {
+   background: var(--panel) !important; border: 1.5px solid var(--border) !important;
+   box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+ }
+ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3,
+ body.dark-mode .row1 .kpi-label, body.dark-mode .path-kpi .lbl,
+ body.dark-mode .row1 .kpi-sub, body.dark-mode .row1 .kpi-sub *,
+ body.dark-mode .section-sub, body.dark-mode .section-sub *,
+ body.dark-mode .path-kpi .pct,
+ body.dark-mode .accuracy-table thead th, body.dark-mode .accuracy-table .acc-notes,
+ body.dark-mode .accuracy-table .acc-metric,
+ body.dark-mode .status-rundown-table .rundown-desc,
+ body.dark-mode .status-rundown-table .rundown-count,
+ body.dark-mode .row1b .panel .header .title, body.dark-mode .row1b .panel .header .total,
+ body.dark-mode .row1b .panel .stat .lbl, body.dark-mode .row1b .panel .stat .ct,
+ body.dark-mode .row1b .panel .stat .lst,
+ body.dark-mode .metric-title,
+ body.dark-mode .station-row .nm, body.dark-mode .station-row .timing,
+ body.dark-mode .path-table tbody td, body.dark-mode .path-table tbody td *,
+ body.dark-mode .path-table th, body.dark-mode .trend-legend,
+ body.dark-mode .trend-legend *, body.dark-mode .silent-panel * {
+   color: var(--text) !important;
+ }
+ body.dark-mode .station-row .barwrap { background: #2a3343 !important;
+                                          border-color: #364152 !important; }
+ body.dark-mode .path-table th { background: #1a2734 !important; }
+ body.dark-mode .station-row .timing .up,
+ body.dark-mode .path-table .pc-status.pc-ok { color: #4ade80 !important; }
+ body.dark-mode .station-row .timing .dn,
+ body.dark-mode .path-table .pc-status.pc-warn { color: #f87171 !important; }
+ body.dark-mode .path-table .pc-status.pc-info { color: #60a5fa !important; }
+ body.dark-mode .path-table .pc-status.pc-mild { color: #fcd34d !important; }
+ body.dark-mode .row1 .kpi-value[style*="#e88c1a"] { color: #fb923c !important; }
+ body.dark-mode .row1 .kpi-value[style*="#d9c623"] { color: #fcd34d !important; }
+ body.dark-mode .row1 .kpi-value[style*="#1ec773"] { color: #4ade80 !important; }
+ body.dark-mode code { color: #93c5fd !important;
+                         background: rgba(96,165,250,0.12) !important; }
+ body.dark-mode .quality-badge.badge-direct { background: rgba(74,222,128,0.18) !important; color: #4ade80 !important; }
+ body.dark-mode .quality-badge.badge-inferred { background: rgba(96,165,250,0.18) !important; color: #93c5fd !important; }
+ body.dark-mode .quality-badge.badge-estimated { background: rgba(252,211,77,0.18) !important; color: #fcd34d !important; }
+ body.dark-mode .quality-badge.badge-na { color: var(--muted) !important; }
 </style>
+<script>
+  // Apply theme BEFORE <body> renders to prevent flash-of-wrong-theme.
+  (function() {
+    try {
+      var saved = localStorage.getItem('dfmg-report-theme');
+      var theme = saved || 'dark';  // default dark per 2026-06-21
+      window.__initialTheme = theme;
+    } catch (e) { window.__initialTheme = 'dark'; }
+  })();
+</script>
 </head><body>
 
-<div>
-  <span class="badge">DFMG · SAR · MONTHLY</span>
-  <span class="title">DFMG SAR CONNECTION AVAILABILITY · May 2026 · May 1 → May 31 · UTC</span>
-  <span class="legend">
-    <span style="background:#1ec773"></span>&gt; 99.95%
-    <span style="background:#26d97f"></span>99.90–99.95%
-    <span style="background:#d9c623"></span>99.00–99.90%
-    <span style="background:#e88c1a"></span>95.00–99.00%
-    <span style="background:#e64646"></span>&lt; 95.00%
-  </span>
-</div>
+<header class="top-band">
+  <div class="brand-bar">
+    <div class="brand-logo" aria-label="Swift Navigation">
+      <img class="brand-mark-img" src="data:image/png;base64,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" alt="Swift Navigation"/>
+    </div>
+    <div class="report-meta">
+      <span class="report-title">DFMG Station Availability</span>
+      <span class="report-period">May 2026 · May 1 → May 31 · UTC · MONTHLY</span>
+    </div>
+    <span class="spacer"></span>
+    <span class="legend" title="Availability colour thresholds">
+      <span class="swatch" style="background:#26d97f"></span>&gt;99.95%
+      <span class="swatch" style="background:#15803d"></span>99.90–99.95%
+      <span class="swatch" style="background:#d4a017"></span>99.00–99.90%
+      <span class="swatch" style="background:#d97a17"></span>95–99%
+      <span class="swatch" style="background:#e63027"></span>&lt;95%
+    </span>
+    <button class="theme-toggle" id="theme-toggle" type="button"
+            title="Toggle light / dark mode" aria-label="Toggle theme">
+      <span class="icon-moon" aria-hidden="true">☾</span>
+      <span class="icon-sun" aria-hidden="true">☀</span>
+    </button>
+  </div>
+</header>
 
-<div class="methodology-banner"><div class="head">METHODOLOGY UPDATE · 2026-06-18</div>INFRA-LITE outage durations now reconstructed at <b>1-minute precision</b> (was 5-min) via per-day cache + Prometheus gap-fill hybrid. Cross-midnight outages re-paired at merge time. Sites observed online with unpaired backup alerts are reclassified as <code>duration_uncertain</code>; sites with <code>battery_exhausted</code> events AND confirmed silent observations are classified as <b>battery-exhausted → station dark</b> (Adel ~4h, APC ~1h cap). <b>New 2026-06-18:</b> Path Connections section (Phase 3 + Phase 4) added — surfaces primary-wired stability and cellular-failover events per station. Note: per-SIM (SIM1 vs SIM2) and continuous wired↔cellular state are <i>not</i> exposed by Prometheus; we use SAR alert counter events instead. See the project README for full details.</div>
+<main class="content">
 
 <div class="row1">
   <div class="panel">
@@ -295,7 +528,7 @@
 </div>
 
 <div class="row1b">
-  <div class="panel">  <div class="header">    <div class="title">SAR Station Health</div>    <div class="tag">sar_status_connection_online</div>    <div class="total">250 stations</div>  </div>  <div class="stats">    <div class="stat">      <div class="lbl">UPTIME</div>      <div class="val" style="color:#1ec773">66.400%</div>      <div class="ct">166 / 250 stations · no downtime in window</div>      <div class="lst">ATHB0xAUT, ATKA0xAUT, BGLO0xBGR, BGPV0xBGR, BGVI0xBGR, BGVN0xBGR, CZPA0xCZE, DNHS0xDNK, DNSO0xDNK, DTBA0xDEU, DTBN0xDEU, DTBR0xDEU, DTFB0xDEU, DTGB0xDEU, DTHL0xDEU, DTHT0xDEU, DTIF0xDEU, DTKM0xDEU, DTMB0xDEU, DTMH0xDEU, DTND0xDEU, DTOB0xDEU, DTPW0xDEU, DTSW0xDEU, DTVD0xDEU, DTVR0xDEU, DTWL0xDEU, DTWR0xDEU, DTZU0xDEU, ESAC0xESP, ESCD0xESP, ESCM0xESP, ESCU0xESP, ESEI0xESP, ESGC0xESP, ESME0xESP, ESMG0xESP, ESML0xESP, ESMR0xESP, ESMU0xESP, ESMZ0xESP, ESOV0xESP, ESSC0xESP, ESVI0xESP, ESZA0xESP, FIEK0xFIN, FIHA0xFIN, FIII0xFIN, FIIV0xFIN, FIJO0xFIN, FIKL0xFIN, FIKM0xFIN, FILA0xFIN, FILV0xFIN, FIMU0xFIN, FINA0xFIN, FISU0xFIN, FITA0xFIN, FIUU0xFIN, FRAC0xFRA, FRAR0xFRA, FRBD0xFRA, FRBY0xFRA, FRCB0xFRA, FRCO0xFRA, FRDI0xFRA, FRDL0xFRA, FRHR0xFRA, FRLA0xFRA, FRLO0xFRA, FRMO0xFRA, FRNA0xFRA, FRNI0xFRA, FRPE0xFRA, FRPT0xFRA, FRRF0xFRA, FRRO0xFRA, FRSG0xFRA, GBCC0xGBR, GBCD0xGBR, GBDB0xGBR, GBGY0xGBR, GBKS0xGBR, GBLH0xGBR, GBLP0xGBR, GBNQ0xGBR, GBOB0xGBR, GBTA0xGBR, GBWH0xGBR, GRCH0xGRC, GRKE0xGRC, GRKV0xGRC, GRLB0xGRC, GRTA0xGRC, GRVO0xGRC, HRLA0xHRV, HRSB0xHRV, HRVV0xHRV, HUSZ0xHUN, IRBA0xIRL, IRDU0xIRL, IREN0xIRL, IRLD0xIRL, ITAN0xITA, ITAP0xITA, ITBI0xITA, ITCA0xITA, ITMA0xITA, ITMI0xITA, ITPT0xITA, ITRA0xITA, ITRS0xITA, ITTR0xITA, ITVE0xITA, NLMM0xNLD, NLUL0xNLD, NOAL0xNOR, NOBE0xNOR, NOBR0xNOR, NOHA0xNOR, NOKR0xNOR, NOKU0xNOR, NOLF0xNOR, NONO0xNOR, NOPG0xNOR, NORO0xNOR, NOSE0xNOR, NOSV0xNOR, NOTR0xNOR, NOVA0xNOR, NOVI0xNOR, POCH0xPOL, POCZ0xPOL, POOL0xPOL, POPO0xPOL, POSU0xPOL, POTU0xPOL, PRAC0xPRT, PRBR0xPRT, PRLA0xPRT, PRLB0xPRT, PRLE0xPRT, PRMA0xPRT, PRMD0xPRT, ROBO0xROU, ROBR0xROU, RODE0xROU, ROTM0xROU, ROTU0xROU, SVBB0xSVK, SWGA0xSWE, SWGO0xSWE, SWGV0xSWE, SWHU0xSWE, SWJO0xSWE, SWKR0xSWE, SWLJ0xSWE, SWLU0xSWE, SWMA0xSWE, SWNY0xSWE, SWOB0xSWE, SWOK0xSWE, SWSG0xSWE, SWSK0xSWE, SWST0xSWE, SWVA0xSWE</div>    </div>    <div class="stat">      <div class="lbl">DOWNTIME</div>      <div class="val" style="color:#e64646">33.600%</div>      <div class="ct">84 / 250 stations · had any downtime</div>      <div class="lst dn">ATFS0xAUT, ATGD0xAUT, ATHL0xAUT, ATJB0xAUT, BGBL0xBGR, BGBO0xBGR, CZOL0xCZE, DNAB0xDNK, DNBR0xDNK, DTDD0xDEU, DTHR0xDEU, DTOS0xDEU, ESAM0xESP, ESBN0xESP, ESCB0xESP, ESCO0xESP, ESGU0xESP, ESHU0xESP, ESNM0xESP, ESSE0xESP, ESTA0xESP, ESVA0xESP, FIJM0xFIN, FRBE0xFRA, FRCH0xFRA, FRDU0xFRA, FRGE0xFRA, FRHV0xFRA, FRLM0xFRA, FRMC0xFRA, FRMG0xFRA, FRVA0xFRA, GBCT0xGBR, GBPH0xGBR, GBSA0xGBR, GBSB0xGBR, GBUS0xGBR, GRFO0xGRC, GRHK0xGRC, GRIG0xGRC, GRKL0xGRC, GRNX0xGRC, GROS0xGRC, GRPS0xGRC, GRRO0xGRC, GRSA0xGRC, HRPL0xHRV, HUBU0xHUN, HUNY0xHUN, HUVE0xHUN, IRCO0xIRL, IRWA0xIRL, ITAL0xITA, ITCI0xITA, ITDO0xITA, ITFO0xITA, ITLE0xITA, ITMS0xITA, ITRG0xITA, ITSA0xITA, ITSC0xITA, ITSL0xITA, ITSP0xITA, ITTE0xITA, ITTP0xITA, NLBR0xNLD, NOGE0xNOR, POBI0xPOL, PODA0xPOL, POGD0xPOL, POKL0xPOL, POPR0xPOL, POWA0xPOL, POWW0xPOL, PRGU0xPRT, ROBC0xROU, ROMA0xROU, RONA0xROU, ROSG0xROU, ROSI0xROU, SVKE0xSVK, SWKA0xSWE, SWNO0xSWE, SWOS0xSWE</div>    </div>  </div></div>
+  <div class="panel">  <div class="header">    <div class="title">Station Health</div>    <div class="tag">sar_status_connection_online</div>    <div class="total">250 stations</div>  </div>  <div class="stats">    <div class="stat">      <div class="lbl">UPTIME</div>      <div class="val" style="color:#1ec773">66.400%</div>      <div class="ct">166 / 250 stations · no downtime in window</div>      <div class="lst">ATHB0xAUT, ATKA0xAUT, BGLO0xBGR, BGPV0xBGR, BGVI0xBGR, BGVN0xBGR, CZPA0xCZE, DNHS0xDNK, DNSO0xDNK, DTBA0xDEU, DTBN0xDEU, DTBR0xDEU, DTFB0xDEU, DTGB0xDEU, DTHL0xDEU, DTHT0xDEU, DTIF0xDEU, DTKM0xDEU, DTMB0xDEU, DTMH0xDEU, DTND0xDEU, DTOB0xDEU, DTPW0xDEU, DTSW0xDEU, DTVD0xDEU, DTVR0xDEU, DTWL0xDEU, DTWR0xDEU, DTZU0xDEU, ESAC0xESP, ESCD0xESP, ESCM0xESP, ESCU0xESP, ESEI0xESP, ESGC0xESP, ESME0xESP, ESMG0xESP, ESML0xESP, ESMR0xESP, ESMU0xESP, ESMZ0xESP, ESOV0xESP, ESSC0xESP, ESVI0xESP, ESZA0xESP, FIEK0xFIN, FIHA0xFIN, FIII0xFIN, FIIV0xFIN, FIJO0xFIN, FIKL0xFIN, FIKM0xFIN, FILA0xFIN, FILV0xFIN, FIMU0xFIN, FINA0xFIN, FISU0xFIN, FITA0xFIN, FIUU0xFIN, FRAC0xFRA, FRAR0xFRA, FRBD0xFRA, FRBY0xFRA, FRCB0xFRA, FRCO0xFRA, FRDI0xFRA, FRDL0xFRA, FRHR0xFRA, FRLA0xFRA, FRLO0xFRA, FRMO0xFRA, FRNA0xFRA, FRNI0xFRA, FRPE0xFRA, FRPT0xFRA, FRRF0xFRA, FRRO0xFRA, FRSG0xFRA, GBCC0xGBR, GBCD0xGBR, GBDB0xGBR, GBGY0xGBR, GBKS0xGBR, GBLH0xGBR, GBLP0xGBR, GBNQ0xGBR, GBOB0xGBR, GBTA0xGBR, GBWH0xGBR, GRCH0xGRC, GRKE0xGRC, GRKV0xGRC, GRLB0xGRC, GRTA0xGRC, GRVO0xGRC, HRLA0xHRV, HRSB0xHRV, HRVV0xHRV, HUSZ0xHUN, IRBA0xIRL, IRDU0xIRL, IREN0xIRL, IRLD0xIRL, ITAN0xITA, ITAP0xITA, ITBI0xITA, ITCA0xITA, ITMA0xITA, ITMI0xITA, ITPT0xITA, ITRA0xITA, ITRS0xITA, ITTR0xITA, ITVE0xITA, NLMM0xNLD, NLUL0xNLD, NOAL0xNOR, NOBE0xNOR, NOBR0xNOR, NOHA0xNOR, NOKR0xNOR, NOKU0xNOR, NOLF0xNOR, NONO0xNOR, NOPG0xNOR, NORO0xNOR, NOSE0xNOR, NOSV0xNOR, NOTR0xNOR, NOVA0xNOR, NOVI0xNOR, POCH0xPOL, POCZ0xPOL, POOL0xPOL, POPO0xPOL, POSU0xPOL, POTU0xPOL, PRAC0xPRT, PRBR0xPRT, PRLA0xPRT, PRLB0xPRT, PRLE0xPRT, PRMA0xPRT, PRMD0xPRT, ROBO0xROU, ROBR0xROU, RODE0xROU, ROTM0xROU, ROTU0xROU, SVBB0xSVK, SWGA0xSWE, SWGO0xSWE, SWGV0xSWE, SWHU0xSWE, SWJO0xSWE, SWKR0xSWE, SWLJ0xSWE, SWLU0xSWE, SWMA0xSWE, SWNY0xSWE, SWOB0xSWE, SWOK0xSWE, SWSG0xSWE, SWSK0xSWE, SWST0xSWE, SWVA0xSWE</div>    </div>    <div class="stat">      <div class="lbl">DOWNTIME</div>      <div class="val" style="color:#e64646">33.600%</div>      <div class="ct">84 / 250 stations · had any downtime</div>      <div class="lst dn">ATFS0xAUT, ATGD0xAUT, ATHL0xAUT, ATJB0xAUT, BGBL0xBGR, BGBO0xBGR, CZOL0xCZE, DNAB0xDNK, DNBR0xDNK, DTDD0xDEU, DTHR0xDEU, DTOS0xDEU, ESAM0xESP, ESBN0xESP, ESCB0xESP, ESCO0xESP, ESGU0xESP, ESHU0xESP, ESNM0xESP, ESSE0xESP, ESTA0xESP, ESVA0xESP, FIJM0xFIN, FRBE0xFRA, FRCH0xFRA, FRDU0xFRA, FRGE0xFRA, FRHV0xFRA, FRLM0xFRA, FRMC0xFRA, FRMG0xFRA, FRVA0xFRA, GBCT0xGBR, GBPH0xGBR, GBSA0xGBR, GBSB0xGBR, GBUS0xGBR, GRFO0xGRC, GRHK0xGRC, GRIG0xGRC, GRKL0xGRC, GRNX0xGRC, GROS0xGRC, GRPS0xGRC, GRRO0xGRC, GRSA0xGRC, HRPL0xHRV, HUBU0xHUN, HUNY0xHUN, HUVE0xHUN, IRCO0xIRL, IRWA0xIRL, ITAL0xITA, ITCI0xITA, ITDO0xITA, ITFO0xITA, ITLE0xITA, ITMS0xITA, ITRG0xITA, ITSA0xITA, ITSC0xITA, ITSL0xITA, ITSP0xITA, ITTE0xITA, ITTP0xITA, NLBR0xNLD, NOGE0xNOR, POBI0xPOL, PODA0xPOL, POGD0xPOL, POKL0xPOL, POPR0xPOL, POWA0xPOL, POWW0xPOL, PRGU0xPRT, ROBC0xROU, ROMA0xROU, RONA0xROU, ROSG0xROU, ROSI0xROU, SVKE0xSVK, SWKA0xSWE, SWNO0xSWE, SWOS0xSWE</div>    </div>  </div></div>
 </div>
 
 <h2>UPTIME AND DOWNTIME OF STATIONS</h2>
@@ -345,9 +578,62 @@
 <div class="accuracy-panel"><div class="status-rundown-title">DATA ACCURACY</div><table class="accuracy-table"><thead><tr><th>Column</th><th>Source</th><th>Confidence</th><th>Notes</th></tr></thead><tbody><tr><td class="acc-metric">Uptime / Downtime</td><td class="acc-source"><code>sar_status_connection_online gauge · 60s step</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Measured. Resolution ±60s per state transition.</td></tr><tr><td class="acc-metric">Failover events (mdm / online / offline)</td><td class="acc-source"><code>sar_alert_connection_state_*_total counters</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Counter increments emitted by NetCloud on state-change alerts.</td></tr><tr><td class="acc-metric">Primary (WAN) duration</td><td class="acc-source"><code>= uptime − cellular duration</code></td><td class="acc-level"><span class="quality-badge badge-inferred">↔ INFERRED</span></td><td class="acc-notes">Derived from #1 and #4. Accuracy bounded by #4.</td></tr><tr><td class="acc-metric">Secondary (Cellular) duration</td><td class="acc-source"><code>per-mdm event session timing, capped at 4h</code></td><td class="acc-level"><span class="quality-badge badge-estimated">≈ ESTIMATED</span></td><td class="acc-notes">Best-effort: each mdm event timed to the next online/offline event. Sessions longer than 4h are capped (NetCloud rarely reports continuous sessions).</td></tr><tr><td class="acc-metric">Current connection (WAN / Cellular / Offline)</td><td class="acc-source"><code>instant gauge + last-2h event window</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">WAN/Offline are gauge-direct. Cellular detection is inferred: online now + mdm event in last 2h + more mdm than online events.</td></tr><tr><td class="acc-metric">Trend arrow (▲▼·)</td><td class="acc-source"><code>comparison vs same weekday last week (T-7)</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Same gauge over same hour-of-week window.</td></tr><tr><td class="acc-metric">Per-SIM split (SIM1 vs SIM2)</td><td class="acc-source"><code>not exposed by Prometheus</code></td><td class="acc-level"><span class="quality-badge badge-na">✗ UNAVAILABLE</span></td><td class="acc-notes">Requires a swift-nav/sar PR to surface per-slot metrics. Not in this report.</td></tr></tbody></table><div class="acc-legend"><div class="acc-legend-title">CONFIDENCE LABELS</div><div class="acc-legend-grid"><div class="acc-legend-item"><span class="quality-badge badge-direct">✓ DIRECT</span><span class="acc-legend-desc">Observed. Read straight from a Prometheus gauge or counter at query time. Highest trust.</span></div><div class="acc-legend-item"><span class="quality-badge badge-inferred">↔ INFERRED</span><span class="acc-legend-desc">Deduced. Derived via fixed logic from other DIRECT measurements (e.g. primary = uptime − cellular). Logically correct if its inputs are — trace the source chain to gauge trust.</span></div><div class="acc-legend-item"><span class="quality-badge badge-estimated">≈ ESTIMATED</span><span class="acc-legend-desc">Approximated. Numeric best-effort when no direct metric exists (e.g. cellular session = mdm event → next event, capped at 4 h). Carries an unknown error margin.</span></div><div class="acc-legend-item"><span class="quality-badge badge-na">✗ UNAVAILABLE</span><span class="acc-legend-desc">Not exposed by any data source we can read. Requires upstream work (SAR PR, NetCloud API) before we can surface it.</span></div></div></div></div><div class="status-rundown"><div class="status-rundown-title">STATUS GUIDE</div><table class="status-rundown-table"><thead><tr><th>Status</th><th>What it means</th><th>Count</th></tr></thead><tbody><tr><td><span class="pc-status pc-ok">stable</span></td><td class="rundown-desc">No problems. Station stayed on its main connection the whole time.</td><td class="rundown-count">—</td></tr><tr><td><span class="pc-status pc-mild">outage, no failover</span></td><td class="rundown-desc">Went offline but cellular backup didn't kick in. Worth checking.</td><td class="rundown-count">107</td></tr><tr><td><span class="pc-status pc-info">brief failover</span></td><td class="rundown-desc">Switched to cellular a few times (1–4). Wired connection had small blips.</td><td class="rundown-count">82</td></tr><tr><td><span class="pc-status pc-info">FLAPPING</span></td><td class="rundown-desc">Switched to cellular many times and recovered each time (5+). Wired is unstable.</td><td class="rundown-count">10</td></tr><tr><td><span class="pc-status pc-warn">STUCK / degraded</span></td><td class="rundown-desc">Switched to cellular but didn't come back cleanly. Station is degraded.</td><td class="rundown-count">46</td></tr><tr><td><span class="pc-status pc-warn">ON CELLULAR</span></td><td class="rundown-desc">Probably running on cellular backup right now (best guess).</td><td class="rundown-count">1</td></tr><tr><td><span class="pc-status pc-warn">OFFLINE (entire window)</span></td><td class="rundown-desc">Station was unreachable the entire window. Likely decommissioned or hardware failure.</td><td class="rundown-count">4</td></tr></tbody></table></div>
 
 
+</main>
 
-<div class="footer">
-  Generated 2026-06-19 20:58 UTC · DFMG = Deutsche Funkturm · all stations EU · SAR metric only · 31-day window @ 60s step
-</div>
+<footer class="footer-band">
+  <div class="footer-inner">
+    <span class="footer-brand"><img class="brand-mark-img" src="data:image/png;base64,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" alt="Swift Navigation"/></span>
+    <span class="spacer"></span>
+    <span>Generated 2026-06-20 17:00 UTC · DFMG = Deutsche Funkturm · all stations EU · 31-day window @ 60s step</span>
+  </div>
+</footer>
+
+<script>
+  (function() {
+    'use strict';
+    // Sentence-case rewriter for the production-rendered ALL CAPS strings
+    var HEADER_REWRITES = {
+      'DURATION OF EMERGENCY POWER · per station · time on backup battery during window':
+        'Emergency power — time on backup battery, per station',
+      'EMERGENCY POWER · affected sites': 'Emergency power · affected sites',
+      'PATH CONNECTIONS · station connection health': 'Path connections — station connection health',
+      'UPTIME AND DOWNTIME OF STATIONS': 'Uptime and downtime of stations',
+      'SAR Connection Online': 'Connectivity Status',
+      'SAR Station Health': 'Station Health',
+      'SILENT STATIONS': 'Silent stations',
+      'NON-PRODUCTION': 'Non-production',
+      'SILENCED': 'Silenced',
+      'AVAILABILITY': 'Availability', 'HAD DOWNTIME': 'Had downtime',
+      'DOWNTIME %': 'Downtime %', 'DATA WINDOW': 'Data window',
+      'MAX UPTIME': 'Max uptime', 'MIN UPTIME': 'Min uptime',
+      'AVG DOWNTIME': 'Avg downtime', 'STABLE STATIONS': 'Stable stations',
+      'STATIONS WITH DOWNTIME': 'Stations with downtime',
+      'AFFECTED': 'Affected', 'RECOVERED': 'Recovered', 'NOT RECOVERED': 'Not recovered',
+      'NO EVENTS': 'No events', 'HAD EVENTS': 'Had events',
+      'UPTIME': 'Uptime', 'DOWNTIME': 'Downtime', 'STATIONS': 'Stations',
+      'STATUS GUIDE': 'Status guide', 'DATA ACCURACY': 'Data accuracy',
+      'CONFIDENCE LABELS': 'Confidence labels',
+    };
+    function rewriteHeaders() {
+      var sel = 'h1, h2, h3, .kpi-label, .lbl, .status-rundown-title, .metric-title, .row1b .panel .header .title';
+      document.querySelectorAll(sel).forEach(function(el) {
+        var raw = el.textContent.trim();
+        if (HEADER_REWRITES[raw]) el.textContent = HEADER_REWRITES[raw];
+      });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      var initialTheme = window.__initialTheme || 'dark';
+      document.body.classList.add(initialTheme + '-mode');
+      rewriteHeaders();
+      var toggle = document.getElementById('theme-toggle');
+      if (toggle) toggle.addEventListener('click', function() {
+        var isDark = document.body.classList.contains('dark-mode');
+        document.body.classList.toggle('dark-mode', !isDark);
+        document.body.classList.toggle('light-mode', isDark);
+        try { localStorage.setItem('dfmg-report-theme', isDark ? 'light' : 'dark'); } catch (e) {}
+      });
+    });
+  })();
+</script>
 
 </body></html>
