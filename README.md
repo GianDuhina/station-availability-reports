@@ -12,13 +12,23 @@ and the data-quality findings we've surfaced.
 
 ## Scripts
 
+All Python scripts live in `scripts/` after the 2026-06-19 reorg. Generated
+reports, cache, and `station_availability.log` continue to land at the project
+root (the `BASE_DIR` walk-up in `station_availability.py` handles this).
+
 | Script | Scope | What it covers |
 |---|---|---|
-| **`dfmg_sar_availability.py`** | DFMG only · SAR metric only | The production script. Scheduled. Now hybrid cache+live. |
-| `dfmg_availability.py` | DFMG only · SAR + Adel UPS + NTRIP throughput | 3-metric variant. Heavier; not scheduled. |
-| `station_availability.py` | All partners · multi-region | General script + shared plumbing module. Not scheduled. |
+| **`scripts/dfmg_sar_availability.py`** | DFMG only · SAR metric only | Production. Scheduled (daily/weekly/monthly + drain-queue plists). Hybrid cache. Swift-branded dark/light report. |
+| **`scripts/regions_stationavailability.py`** | All partners · grouped by region | NA / EU / AP rollup with dropdown selector + "All Regions - Overview" aggregate. Same feature set as DFMG (Path Connections, Emergency Power, DATA ACCURACY, hybrid cache). Not yet scheduled. |
+| `scripts/station_availability.py` | All partners · multi-region | Shared plumbing module (fetch / push / Slack / logo / cluster-failover). Imported by every other script. |
+| `scripts/BETA_TESTING.py` | DFMG experiments | Permanent BETA twin of `dfmg_sar_availability.py`. Outputs use `BETA_` prefix so production reports aren't overwritten. |
+| `scripts/BETA_TESTING_regions.py` | Regional experiments | Permanent BETA twin of `regions_stationavailability.py`. Same `BETA_` prefix isolation. |
+| `scripts/dfmg_availability.py` | DFMG only · 3-metric variant (SAR + DCUPS + Orion) | Deprecated. Logs a `[DEPRECATED]` warning on startup. Not scheduled. Kept for reference. |
+| `scripts/station_check.py` | Per-station ad-hoc CLI diagnostic | Interactive; not a periodic report. |
 
-> Every change to "the report" defaults to `dfmg_sar_availability.py`.
+> Every change to "the report" defaults to `scripts/dfmg_sar_availability.py`
+> (production) and `scripts/regions_stationavailability.py` (regional). BETA
+> twins exist for experimental work — production stays untouched.
 
 ---
 
@@ -619,6 +629,131 @@ CURRENT-column distribution should equal the production-station count exactly (e
 
 ---
 
+## Regional report (shipped 2026-06-20, polished 2026-06-21)
+
+A multi-region twin of the DFMG production report covering **NA / EU / AP +
+an All Regions overview**. Default dropdown view = "All Regions - Overview";
+drill into a specific region via the tab selector at the top.
+
+### Why it exists
+
+The DFMG report covers 250 production stations in EU. Swift has ~700
+production stations across NA + EU + AP. Before this report there was no
+single view that let an executive scan "how healthy is the fleet by region?"
+without running each region's roster manually.
+
+### Region inventory (Production filter applied, 2026-06-20 audit)
+
+| Region | Stations | Customers (count) |
+|---|---|---|
+| **NA** | 330 | Swift 261 (USA) · Telus 69 (CAN) — Swift's CAN station `ABCG` overridden to Telus |
+| **EU** | 251 | DFMG 250 (22 European countries) · Swift 1 (LVA test). UAE/Etisalat folds into EU (EMEA convention) — currently 0 prod |
+| **AP** | 116 | KDDI 62 (JPN) · KT 20 + SKT 20 (KOR) · TaiwanMobile 18 (TWN) · Singtel 4 (SGP) · Airtel 5 (IND, currently non-prod) |
+| **All Regions** | 697 | Aggregated overview only |
+
+### Country → region mapping
+
+| Region | ISO-3 codes |
+|---|---|
+| NA | USA, CAN, MEX, BRA, PER, ARG, ECU, URY, GUF, CUW (Americas) |
+| EU | AUT, BGR, CZE, DNK, DEU, ESP, FIN, FRA, GBR, GRC, HRV, HUN, IRL, ITA, LVA, LTU, EST, NLD, NOR, POL, PRT, ROU, SVK, SVN, SWE, CHE, BEL, LUX, ISL, MLT, CYP, ALB, BIH, MKD, MNE, SRB, UKR, BLR, MDA, **ARE** (UAE folded in), **ZAF/GHA/MOZ/NAM/CPV** (Africa folded in via EMEA convention) |
+| AP | JPN, KOR, TWN, SGP, IND, CHN, HKG, MAC, MYS, THA, VNM, PHL, IDN, AUS, NZL, MNG, NPL, UZB, MUS, FJI, NCL, PYF |
+
+One-off overrides (until upstream Prometheus labels are corrected):
+- `ABCG` (Swift CAN station): customer remapped Swift → Telus
+- `ATGJ` (Airtel station with missing country label): country defaulted to IND
+
+### Filters
+
+A station enters the report only if it has BOTH:
+1. SAR (`sar_status_connection_online`) OR Orion (`orion_num_obs_cors_sum`) telemetry in the last 30 days
+2. `edge_sitetracker_noc_status == 1` (production rotation)
+
+This drops 240 of 949 roster sites — mostly Swift reference receivers
+(`RX-*`, `CDDIS-*`, `SAPOS-*`) that don't have NetCloud monitoring.
+
+### Hybrid per-region cache
+
+Mirrors production's pattern with region-specific filenames:
+
+```
+cache/sar_daily_region_NA_<date>.json
+cache/sar_daily_region_EU_<date>.json
+cache/sar_daily_region_AP_<date>.json
+cache/sar_daily_region_ALL_<date>.json
+```
+
+The NA/EU/AP caches are shared between `regions_stationavailability.py` and
+`BETA_TESTING_regions.py`. The ALL cache aggregates everything.
+
+Rebuild a date range with `--rebuild-cache YYYY-MM-DD` / `YYYY-MM` / `Nd`.
+
+### All Regions overview view
+
+Default view when the report opens. Shows:
+- Brand bar + dropdown selector (sticky)
+- Executive summary line (1 sentence — "All Regions sustained X% availability across 697 stations …")
+- 4 KPI tiles (Availability, Had Downtime, Downtime %, Data Window)
+- Station Health panel (Uptime/Downtime split + station lists)
+- Emergency Power 3-tile grid + Power Infrastructure Health
+- Path Connections 6 KPI tiles
+
+**Detail sections intentionally stripped from the overview** (per partner UX):
+- Per-station uptime/downtime bars
+- Silent Stations table
+- EMERGENCY POWER · affected sites table
+- ADVISORY bar
+- Trend legend + per-station Path Connections table
+- DATA ACCURACY panel
+- STATUS GUIDE table
+
+Per-region tabs (NA / EU / AP) keep the full detail.
+
+---
+
+## Light / dark theme + Swift Navigation branding (2026-06-21)
+
+Both `dfmg_sar_availability.py` and `regions_stationavailability.py` now ship
+with a Swift-branded report:
+
+| Element | Detail |
+|---|---|
+| **Dark navy header band** | gradient `#0f1a2a → #1a2332 → #232f44` with 4px Swift-orange bottom border |
+| **Swift Navigation logo** | embedded as base64 PNG from `assets/swift_nav_logo.png` (58 px tall) |
+| **Report title** | "DFMG Station Availability" / "Regional Station Availability" · 24 px / weight 800 / white |
+| **Dark navy footer band** | mirrors header, includes generation timestamp |
+| **Theme toggle** | sun/moon button in top-right of brand bar — switches dark ↔ light for the current session only |
+| **Hard-defaulted to dark** | every page load starts in dark mode. `localStorage` intentionally NOT used so partners see consistent default regardless of prior viewer's toggle. |
+| **Sentence-case headers** | JS `HEADER_REWRITES` table rewrites production's ALL-CAPS strings on `DOMContentLoaded` (e.g. "DURATION OF EMERGENCY POWER · per station · ..." → "Emergency power — time on backup battery, per station") |
+| **Partner-friendly metric names** | "SAR Station Health" → "Station Health". "SAR Connection Online" → "Connectivity Status". Technical metric-name chips hidden via CSS. |
+| **Methodology banner** | dropped from display. Technical jargon belongs in this README, not the partner-facing summary. |
+
+### Light-mode contrast hardening
+
+In light mode, ALL text is forced to **pure `#000000`** with extra-heavy
+font-weights:
+- `h1` / `h2`: weight 900
+- `h3` / section titles / KPI labels: weight 800
+- Body text / KPI subtitles / table cells: weight 700
+- Station name bars: weight 800
+- KPI big numbers: weight 900 (semantic accent color preserved)
+
+Three layers of CSS specificity ensure these rules always win:
+1. `body.light-mode .X` (when JS has applied the class)
+2. `body:not(.dark-mode) .X` (default state before JS runs)
+3. Direct selector fallbacks
+
+WCAG verified: `#000000` on white ≈ 21:1 contrast (AAA-grade).
+
+### Dark-mode palette
+
+Background `#0a0e15` · card `#14202e` · text `#f0f4f8`. Status colors
+brightened for proper contrast on dark: green `#4ade80`, red `#f87171`,
+blue `#60a5fa`, yellow `#fcd34d`. Trend arrows, badges, code spans all
+re-themed.
+
+---
+
 ## Known limitations and open issues
 
 ### ✅ Resolved 2026-06-13 (schema v2 cycle)
@@ -694,22 +829,39 @@ bash monitor.sh
 
 ---
 
-## Architecture (file layout)
+## Architecture (file layout, post 2026-06-19 reorg)
 
 ```
 station-availability/
-├── README.md                              ← this file
-├── dfmg_sar_availability.py               ← production script (DFMG · SAR-only · hybrid)
-├── dfmg_availability.py                   ← DFMG · 3-metric variant
-├── station_availability.py                ← shared plumbing (fetch, push, slack)
-├── monitor.sh                             ← tmux session bootstrap
-├── _panel_realtime.sh                     ← panel 2 — live log tail w/ colour
-├── _panel_failures.sh                     ← panel 3 — failures + stale-content checks
-├── station_availability.log               ← structured UTC + [TAG] log
-├── cache/                                 ← daily JSON event log (hybrid layer)
-│   └── sar_daily_dfmg_<YYYY-MM-DD>.json
-└── dfmg_sar_<mode>_<stamp>.{html,png,csv} ← generated reports
+├── README.md                                ← this file
+├── monitor.sh                               ← tmux session bootstrap
+├── _panel_realtime.sh                       ← panel 2 — live log tail w/ colour
+├── _panel_failures.sh                       ← panel 3 — failures + stale-content checks
+├── station_availability.log                 ← structured UTC + [TAG] log
+├── assets/
+│   └── swift_nav_logo.png                   ← Swift Navigation brand logo (base64-embedded in reports)
+├── cache/                                   ← hybrid cache layer
+│   ├── sar_daily_dfmg_<YYYY-MM-DD>.json     ← DFMG (production)
+│   ├── sar_daily_region_NA_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_EU_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_AP_<YYYY-MM-DD>.json
+│   ├── sar_daily_region_ALL_<YYYY-MM-DD>.json
+│   └── publish_queue.json                   ← failed-push retry queue
+├── scripts/                                 ← ALL Python scripts (since 2026-06-19)
+│   ├── dfmg_sar_availability.py             ← DFMG production
+│   ├── regions_stationavailability.py       ← Regional production
+│   ├── station_availability.py              ← shared plumbing module
+│   ├── BETA_TESTING.py                      ← BETA twin for DFMG experiments
+│   ├── BETA_TESTING_regions.py              ← BETA twin for regional experiments
+│   ├── dfmg_availability.py                 ← deprecated 3-metric variant
+│   └── station_check.py                     ← ad-hoc CLI diagnostic
+├── dfmg_sar_<mode>_<stamp>.{html,png,csv}   ← DFMG generated reports
+└── regions_stationavailability_<mode>_<stamp>.{html,png,csv}
 ```
+
+The `BASE_DIR` walk-up in `scripts/station_availability.py` ensures generated
+files, caches, and logs land at the project root regardless of where the
+script is run from.
 
 ---
 
@@ -756,7 +908,15 @@ dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyb
 | **UX refinements** (2026-06-19) | STATUS GUIDE moved to bottom of Path Connections (reference position vs upfront). Removed redundant exec summary banner (info already in KPI tiles). Added trend-arrow legend above per-station table. Zero-uptime cells show `0s` instead of `—` (disambiguates "no data" vs "nothing was up"). DATA ACCURACY panel added — explicit confidence label (direct / inferred / estimated / unavailable) per visible column. |
 | **SAR vs Orion-bytes mismatch surfaced** (2026-06-19) | Cross-checking IRCO/HRPL May 2026 against Grafana's `orion_ntrip_client_bytes_sum` revealed the two metrics measure different observation points: SAR sees the NetCloud control channel, Orion sees actual NTRIP byte flow. A station can be "down" per SAR while still serving NTRIP via an alternate network path. Documented in the Path Connections caveats. |
 | Validated end-to-end (Phase 3) | May 2026 monthly republished 2026-06-19 with new layout. 250 prod stations, 97.6572% availability, current-connection distribution (244 WAN / 5 Offline / 1 Cellular = 250) matches production count exactly. STATUS GUIDE counts sum correctly after subtracting the legend rows. |
+| **Scripts reorg** (2026-06-19) | All 5 `.py` files moved into `scripts/` subfolder for clean repo layout. `BASE_DIR` walk-up added to `station_availability.py` so reports / cache / log still land at project root. 4 launchd plists updated to point at `scripts/dfmg_sar_availability.py`. Backups saved as `*.bak.20260619`. |
+| **Regional Station Availability** (2026-06-20) | New `regions_stationavailability.py` produces NA / EU / AP / All-Regions rollup with full feature parity to DFMG production. Country → region mapping with overrides (ABCG → Telus, ATGJ → IND). SAR/orion + `noc_status==1` filters applied. Per-region hybrid cache (`sar_daily_region_<ALL\|NA\|EU\|AP>_<date>.json`). May 2026 rebuild took 1h 18m for 93 region-day caches (~3.5× DFMG's 22m). May headline: NA 330 / EU 251 / AP 116 production stations. EU matches DFMG exactly (84 affected, 259879 min down). |
+| **BETA sandbox split** (2026-06-19/20) | `BETA_TESTING.py` (DFMG) + `BETA_TESTING_regions.py` (regional). Outputs use `BETA_` filename prefix so production reports are never overwritten. Title badge shows "· BETA"; logger names distinct. Pattern: experiment in BETA → smoke-test → merge to production once proven. |
+| **Multi-disciplinary lens commitment** (2026-06-20) | Foundational instruction: every session and every process is approached through ALL professional lenses — web dev, software dev, graphic designer, graphic artist, UX, accessibility, technical writer, brand — not just code-correctness. Visual + brand + UX checks before shipping any change. Saved as `feedback_multi_disciplinary_lens.md` in auto-memory. |
+| **All-Regions overview view** (2026-06-20) | Default dropdown option in `regions_stationavailability.py`. Aggregates NA + EU + AP into one rollup (~697 production stations) and STRIPS per-station detail (uptime/downtime bars, silent table, emergency per-site table, ADVISORY bar, trend legend, Path Connections per-station table, DATA ACCURACY, STATUS GUIDE) — keeps only the high-level KPI tiles + Power Infrastructure Health for executive scan. Per-region tabs (NA / EU / AP) retain full detail. |
+| **Swift Navigation light theme** (2026-06-21) | Light theme with Swift brand colors (orange `#f26522`, red `#e63027`, navy `#1a2332`). Dark navy header band with embedded real PNG logo (58 px) + report title (24 px / weight 800). Sentence-case headers via JS rewrite. Partner-friendly metric renames (Station Health, Connectivity Status). Methodology banner dropped from display. |
+| **Dark mode + toggle** (2026-06-21) | Sun/moon toggle button in brand bar. Dark default = page bg `#0a0e15`, cards `#14202e`, text `#f0f4f8`. Brightened status colors for dark-bg contrast (green `#4ade80`, red `#f87171`, blue `#60a5fa`, yellow `#fcd34d`). Pre-`<body>` inline script prevents flash-of-wrong-theme. Hard-defaulted to dark on every page load — `localStorage` not used, so partners see consistent default. Toggle is session-only. Applied to both DFMG and regional scripts. |
+| **Pure-black + extra-bold light mode** (2026-06-21) | After multiple iterations of "still too light" feedback: ALL light-mode text forced to `#000000` with weights 700-900 (was `#0a0e15` at 500-700). Three-layer CSS specificity insurance (`body.light-mode`, `body:not(.dark-mode)`, direct selectors) guarantees rules win cascade. WCAG AAA verified (21:1 contrast on white). |
 
 ---
 
-_Last reviewed: 2026-06-19 · schema v2 active · Path Connections live · Confidence-label legend inline · cluster-failover-resilient · T-1 auto-regen on_
+_Last reviewed: 2026-06-21 · Regional report shipped · Light/dark themes with Swift branding · Sentence-case headers · Hard-dark default · Pure-black light mode · Scripts in `scripts/` subfolder · schema v2 · cluster-failover-resilient · T-1 auto-regen on_
