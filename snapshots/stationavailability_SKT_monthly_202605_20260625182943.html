@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SKT Station Availability — May 2026 · May 1 → May 31 · UTC</title>
+<style>
+ :root {
+   --bg:#0d0f12; --panel:#161a20; --panel2:#1c2128; --border:#252b33;
+   --text:#e6e8ec; --muted:#8a93a0;
+ }
+ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        margin:0; padding:24px; font-size:13px; }
+ .badge { display:inline-block; padding:3px 8px; background:#3b1f6b; color:#c9b6ff;
+          font-size:10px; letter-spacing:0.1em; font-weight:600; border-radius:3px; margin-right:14px; }
+ .title { font-size:13px; color:var(--muted); letter-spacing:0.08em; font-weight:600; }
+ .legend { display:inline-block; margin-left:20px; font-size:11px; color:var(--muted); }
+ .legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+
+ /* Row 1: 4 horizontal KPI panels */
+ .row1 { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:18px; }
+ .row1 .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px; }
+ .row1 .kpi-label { color:var(--muted); font-size:10px; letter-spacing:0.1em; font-weight:600; }
+ .row1 .kpi-value { font-size:30px; font-weight:700; margin-top:8px; line-height:1.05; }
+ .row1 .kpi-sub { color:var(--muted); font-size:10px; margin-top:8px; }
+
+ /* Path Connections — Phase 3 + Phase 4 (2026-06-18) */
+ .path-connections { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:8px; }
+ .path-col { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 16px; }
+ .path-col.path-primary { border-left:3px solid #26d97f; }
+ .path-col.path-secondary { border-left:3px solid #d9c623; }
+ .path-header { margin-bottom:10px; }
+ .path-title { font-size:14px; font-weight:700; letter-spacing:0.06em; }
+ .path-sub { color:var(--muted); font-size:12px; margin-top:3px; }
+ .path-kpis { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+ .path-kpis.path-kpis-3 { grid-template-columns:1fr 1fr 1fr; }
+ .path-kpis.path-kpis-5 { grid-template-columns:repeat(5, 1fr); gap:6px; }
+ .path-kpis.path-kpis-6 { grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:14px; }
+ /* v7 single-section table — full-width with inline bar in uptime cell */
+ .path-table.path-table-single { width:100%; }
+ .path-table.path-table-single th { padding:8px 12px; font-size:12px; }
+ .path-table.path-table-single td { padding:8px 12px; font-size:13px; }
+ .path-table .pc-uptime-cell { display:flex; align-items:center; gap:12px;
+                                  font-variant-numeric:tabular-nums; padding:7px 10px;
+                                  color:#c8ced8; white-space:nowrap; font-size:13px; }
+ .pc-uptime-cell .inline-bar { background:#0f1218; border-radius:2px; height:10px;
+                                 width:140px; position:relative; overflow:hidden; flex:0 0 140px; }
+ .pc-uptime-cell .inline-bar-fill { position:absolute; left:0; top:0; bottom:0; }
+ .pc-uptime-cell .dur-primary { font-weight:600; }
+ .pc-uptime-cell .trend-arrow { font-size:13px; font-weight:700; margin-left:6px; line-height:1; }
+ .trend-arrow.trend-up   { color:#26d97f; }
+ .trend-arrow.trend-down { color:#e64646; }
+ .trend-arrow.trend-flat { color:#5a6470; }
+ .trend-arrow.trend-na   { color:#3a4048; }
+ .trend-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px;
+                   margin:8px 0 8px; padding:8px 12px; background:var(--panel);
+                   border:1px solid var(--border); border-radius:6px; font-size:11px;
+                   color:var(--muted); }
+ .trend-legend-title { font-weight:700; letter-spacing:0.06em; color:#c8d4e0; }
+ .trend-legend-item { display:inline-flex; align-items:center; gap:5px; }
+ .trend-legend-item .trend-arrow { font-size:14px; margin-left:0; }
+ .path-table th .th-hint { font-size:9px; font-weight:500; letter-spacing:0.04em;
+                              color:#5a6470; margin-left:6px; text-transform:none; }
+ .path-kpis.path-kpis-5 .path-kpi { padding:8px 8px; }
+ .path-kpis.path-kpis-5 .path-kpi .val { font-size:16px; }
+ .path-kpis.path-kpis-5 .path-kpi .lbl { font-size:8.5px; }
+ .path-kpis.path-kpis-5 .path-kpi .pct { font-size:9px; }
+
+ /* Status rundown legend — explains each badge above Phase 3 + 4 tables */
+ .status-rundown { background:var(--panel); border:1px solid var(--border); border-radius:6px;
+                     padding:10px 14px; margin-top:14px; margin-bottom:12px; }
+ .status-rundown-title { font-size:13px; font-weight:700; letter-spacing:0.1em; color:var(--muted); margin-bottom:10px; }
+ .status-rundown-table { width:100%; border-collapse:collapse; font-size:13px; }
+ .status-rundown-table th { text-align:left; color:var(--muted); font-size:11px; font-weight:700;
+                              letter-spacing:0.06em; padding:6px 10px; border-bottom:1px solid var(--border); }
+ .status-rundown-table td { padding:8px 10px; border-bottom:1px solid #1f242b; vertical-align:top; }
+ .status-rundown-table .rundown-desc { color:#c8ced8; line-height:1.55; }
+ .status-rundown-table .rundown-count { color:#84b7d6; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; width:60px; font-size:14px; }
+ .path-kpi { background:var(--panel2); padding:8px 10px; border-radius:4px; }
+ .path-kpi .lbl { color:var(--muted); font-size:11px; letter-spacing:0.08em; font-weight:600; }
+ .path-kpi .val { font-size:26px; font-weight:700; margin-top:4px; line-height:1.1; }
+ .path-kpi .val .of { color:var(--muted); font-size:15px; font-weight:400; }
+ .path-kpi .pct { color:var(--muted); font-size:12px; margin-top:4px; }
+ .path-kpi .pc-ok-text { color:#26d97f; }
+ .path-kpi .pc-warn-text { color:#e88c1a; }
+ .path-kpi .pc-mild-text { color:#d9c623; }
+ .path-table .pc-num.pc-muted { color:#5a6470; font-size:11px; }
+ .path-table .pc-more.pc-divider { color:#5a6470; padding:4px 8px; text-align:left; font-style:normal; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); }
+
+ /* Duration bars + duration formatting for partner-facing Phase 3+4 (v3) */
+ .path-table .pc-bar-cell { width:90px; padding:4px 8px; }
+ .pc-bar { background:#0f1218; border-radius:2px; height:8px; position:relative; overflow:hidden; }
+ .pc-bar-fill { position:absolute; left:0; top:0; bottom:0; }
+ .path-table .pc-dur { font-variant-numeric:tabular-nums; padding:5px 8px; color:#c8ced8; white-space:nowrap; }
+ .path-table .pc-dur .dur-primary { font-weight:600; }
+ .path-table .pc-dur .dur-secondary { color:#e88c1a; font-weight:600; }
+ .path-table .pc-dur .dur-wan  { color:#26d97f; font-weight:600; }
+ .path-table .pc-dur .dur-cell { color:#84b7d6; font-weight:600; }
+ .path-table .pc-dur .dur-sub { display:inline-block; color:#5a6470; font-size:11px; margin-left:6px; font-weight:400; text-transform:lowercase; letter-spacing:0.05em; }
+ .path-table .pc-current { padding:5px 8px; font-size:12px; font-weight:700; letter-spacing:0.06em; white-space:nowrap; }
+ .path-table .pc-current.pc-ok   { color:#26d97f; }
+ .path-table .pc-current.pc-info { color:#84b7d6; }
+ .path-table .pc-current.pc-warn { color:#e64646; }
+ .path-table.path-table-wide { table-layout:auto; }
+ .path-table.path-table-wide th { font-size:11px; }
+ .path-table { width:100%; border-collapse:collapse; font-size:13px; }
+ .path-table thead th { text-align:left; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:0.08em;
+                          padding:8px 10px; border-bottom:1px solid var(--border); background:var(--panel2); }
+ .path-table tbody td { padding:7px 10px; border-bottom:1px solid #1f242b; }
+ .path-table tbody tr:hover { background:var(--panel2); }
+ .path-table .pc-name { font-family:"SF Mono", Menlo, monospace; color:#c8ced8; white-space:nowrap; font-size:12px; }
+ .path-table .pc-status { font-size:11px; font-weight:700; letter-spacing:0.04em; }
+ .path-table .pc-status.pc-ok    { color:#26d97f; }
+ .path-table .pc-status.pc-mild  { color:#d9c623; }
+ .path-table .pc-status.pc-info  { color:#e88c1a; }
+ .path-table .pc-status.pc-warn  { color:#e64646; }
+ .path-table .pc-status.pc-muted { color:#5a6470; font-style:italic; font-weight:400; }
+ .path-table .pc-num { text-align:right; font-variant-numeric:tabular-nums; color:#c8ced8; }
+ .path-table .pc-more { color:var(--muted); font-style:italic; padding:8px; text-align:center; }
+ .path-table .pc-more.pc-ok { color:#26d97f; font-style:normal; }
+
+ /* Methodology banner — methodology change announcement (2026-06-13) */
+ .methodology-banner { background:linear-gradient(90deg,#1c2a3a 0%,#162028 100%);
+                         border:1px solid #2a4458; border-left:3px solid #4a90c8;
+                         border-radius:6px; padding:11px 14px; margin-top:14px;
+                         font-size:11px; line-height:1.55; color:#c8d4e0; }
+ .methodology-banner .head { font-size:10px; font-weight:700; letter-spacing:0.08em;
+                               color:#84b7d6; margin-bottom:4px; }
+ .methodology-banner b { color:#e6eef5; }
+ .methodology-banner code { background:#0f1820; padding:1px 5px; border-radius:3px;
+                              font-size:10.5px; color:#a9c0d3; }
+
+ /* Row 1B: single full-width station health panel */
+ .row1b { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
+ .row1b .panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; }
+ .row1b .header { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+ .row1b .title { font-size:12px; font-weight:700; letter-spacing:0.06em; }
+ .row1b .tag { background:var(--panel2); padding:2px 7px; border-radius:3px; font-size:10px; color:var(--muted); }
+ .row1b .total { margin-left:auto; color:var(--muted); font-size:10px; }
+ .row1b .stats { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+ .row1b .stat .lbl { color:var(--muted); font-size:10px; letter-spacing:0.06em; font-weight:600; }
+ .row1b .stat .val { font-size:22px; font-weight:700; margin-top:3px; }
+ .row1b .stat .ct  { color:var(--muted); font-size:10px; margin-top:2px; }
+ .row1b .stat .lst { margin-top:8px; font-size:10px; line-height:1.5;
+                      max-height:80px; overflow-y:auto;
+                      font-family:"SF Mono", Menlo, monospace; color:#c8ced8; word-break:break-word; }
+ .row1b .stat .lst.dn { color:#e88c1a; }
+ .row1b .stat .lst.empty { color:#5a6470; font-style:italic; }
+
+ /* Silent stations panel — between row1b and metric breakdown */
+ .silent-panel { background:var(--panel); border:1px solid var(--border); border-left:3px solid #c97a1f;
+                  border-radius:6px; padding:14px 18px; margin-top:14px; }
+ .silent-panel .head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
+ .silent-panel .title { font-size:12px; font-weight:700; letter-spacing:0.06em; color:#e8b069; }
+ .silent-panel .count { background:#2b2218; color:#e8b069; padding:2px 8px; border-radius:3px;
+                         font-size:11px; font-weight:600; }
+ .silent-panel .sub { color:var(--muted); font-size:11px; margin-bottom:10px; }
+ .silent-panel .lst { font-family:"SF Mono", Menlo, monospace; font-size:11px; line-height:1.7;
+                       color:#c8ced8; word-break:break-word; }
+ .silent-panel .station { display:inline-block; background:var(--panel2); padding:2px 8px;
+                           border-radius:3px; margin:2px 4px 2px 0; color:#e8b069; }
+ .silent-panel .none { color:#5a6470; font-style:italic; }
+
+ /* Section dividers inside the per-station grid */
+ .section-divider { display:flex; align-items:center; gap:10px; margin:14px 0 8px; }
+ .section-divider::before, .section-divider::after {
+   content:""; flex:1; height:1px;
+ }
+ .section-divider .lbl { font-size:10px; font-weight:700; letter-spacing:0.1em;
+                          padding:2px 10px; border-radius:3px; }
+ .section-divider.silent .lbl  { color:#e8b069; background:rgba(232,176,105,0.10); }
+ .section-divider.silent::before, .section-divider.silent::after {
+   background:linear-gradient(to right, transparent, rgba(232,176,105,0.35), transparent);
+ }
+ .section-divider.nonprod .lbl { color:#8a93a0; background:rgba(138,147,160,0.08); }
+ .section-divider.nonprod::before, .section-divider.nonprod::after {
+   background:linear-gradient(to right, transparent, rgba(138,147,160,0.25), transparent);
+ }
+
+ /* Silent remark table */
+ .silent-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:11px; }
+ .silent-table thead th { text-align:left; color:var(--muted); font-size:9px; font-weight:700;
+                            letter-spacing:0.08em; padding:6px 10px;
+                            border-bottom:1px solid var(--border); background:var(--panel2); }
+ .silent-table tbody td { padding:6px 10px; border-bottom:1px solid #1f242b; vertical-align:top; }
+ .silent-table tbody tr:hover { background:var(--panel2); }
+ .silent-table .silent-name { font-family:"SF Mono", Menlo, monospace; color:#e8b069;
+                                font-weight:600; white-space:nowrap; width:130px; }
+ .silent-table .silent-remark { color:#c8ced8; font-family:-apple-system,BlinkMacSystemFont,
+                                  "Segoe UI",Roboto,sans-serif; line-height:1.5; }
+
+ h2 { font-size:14px; color:var(--muted); letter-spacing:0.1em; font-weight:700; margin:32px 0 12px; }
+
+ /* Executive summary banner + data-quality badges (2026-06-19) */
+ .exec-summary { background:linear-gradient(90deg,#1c2a3a 0%,#162028 100%); border:1px solid #2a4458;
+                   border-left:3px solid #4a90c8; border-radius:6px; padding:14px 18px; margin-top:18px;
+                   display:flex; flex-wrap:wrap; align-items:center; gap:14px; font-size:14px; color:#e6eef5; }
+ .exec-summary .exec-tag { background:#0f1820; color:#84b7d6; padding:4px 10px; border-radius:3px;
+                             font-size:10px; font-weight:700; letter-spacing:0.08em; }
+ .exec-summary .exec-stat b { color:#fff; font-size:18px; font-weight:700; }
+ .exec-summary .exec-stat { color:#c8d4e0; }
+ .exec-summary .exec-of { color:#5a6470; }
+ .exec-summary .exec-sep { color:#3a4458; font-size:18px; }
+
+ .quality-badge { display:inline-block; padding:3px 8px; border-radius:3px; font-size:9.5px;
+                    font-weight:700; letter-spacing:0.08em; margin-left:8px; vertical-align:middle; }
+ .quality-badge.badge-direct    { background:rgba(38,217,127,0.15); color:#26d97f; }
+ .quality-badge.badge-inferred  { background:rgba(132,183,214,0.15); color:#84b7d6; }
+ .quality-badge.badge-estimated { background:rgba(217,198,35,0.15); color:#d9c623; }
+ .quality-badge.badge-na        { background:rgba(90,100,112,0.20); color:#8a93a0; }
+
+ .accuracy-panel { background:var(--panel); border:1px solid var(--border); border-radius:6px;
+                     padding:14px 18px; margin-top:18px; margin-bottom:10px; }
+ .accuracy-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+ .accuracy-table thead th { text-align:left; color:var(--muted); font-size:10.5px; font-weight:700;
+                              letter-spacing:0.06em; padding:6px 10px; border-bottom:1px solid var(--border); }
+ .accuracy-table tbody td { padding:8px 10px; border-bottom:1px solid #1f242b; vertical-align:top; }
+ .accuracy-table tbody tr:hover { background:var(--panel2); }
+ .accuracy-table .acc-metric { color:#c8d4e0; font-weight:600; white-space:nowrap; }
+ .accuracy-table .acc-source code { font-size:11px; color:#84b7d6; background:transparent; padding:0; }
+ .accuracy-table .acc-level { white-space:nowrap; }
+ .accuracy-table .acc-notes { color:var(--muted); font-size:11.5px; line-height:1.5; }
+
+ .acc-legend { margin-top:14px; padding-top:12px; border-top:1px dashed #1f242b; }
+ .acc-legend-title { font-size:10.5px; font-weight:700; letter-spacing:0.08em; color:var(--muted); margin-bottom:10px; }
+ .acc-legend-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; }
+ .acc-legend-item { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
+ .acc-legend-item .quality-badge { flex:0 0 auto; margin-left:0; }
+ .acc-legend-desc { font-size:11.5px; color:#c8d4e0; }
+
+ .section-sub { color:var(--muted); font-size:13px; margin-bottom:14px; line-height:1.55; }
+
+ /* Metric block — single SAR block */
+ .metric-block { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 18px; margin-bottom:14px; }
+ .metric-header { display:flex; align-items:center; margin-bottom:10px; }
+ .metric-title { font-size:13px; font-weight:700; }
+ .metric-tag { background:var(--panel2); padding:3px 8px; border-radius:3px; font-size:10px; color:var(--muted); margin-left:10px; }
+ .metric-spark { display:flex; gap:8px; margin-left:auto; align-items:center; }
+ .spark-tile { background:var(--panel2); padding:6px 10px; border-radius:4px; min-width:80px; }
+ .spark-tile .l { color:var(--muted); font-size:9px; letter-spacing:0.06em; }
+ .spark-tile .v { font-size:14px; font-weight:700; margin-top:1px; }
+
+ .stations-grid { display:grid; grid-template-columns: 1fr 1fr; gap:4px 16px; margin-top:8px; }
+ .station-row { display:grid; grid-template-columns: 90px 1fr 70px 230px; gap:8px; align-items:center;
+                 padding:5px 8px; border-radius:3px; font-size:11px; }
+ .station-row:hover { background:var(--panel2); }
+ .station-row .nm { font-family: "SF Mono", Menlo, monospace; font-size:10.5px; color:#c8ced8; }
+ .station-row .barwrap { background:#0f1218; border-radius:2px; height:12px; position:relative; overflow:hidden; }
+ .station-row .barwrap .bar { position:absolute; left:0; top:0; bottom:0; }
+ .station-row .pct { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+ .station-row .timing { color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+ .station-row .timing .up { color:#7fbf99; }
+ .station-row .timing .dn { color:#e88c1a; margin-left:10px; }
+ .station-row .timing .dn.zero { color:#5a6470; }
+
+ .empty { color:var(--muted); padding:10px; font-size:11px; }
+ .footer { color:var(--muted); font-size:10px; margin-top:24px; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    LIGHT / DARK THEME SKIN — applied 2026-06-21 to match the regional report.
+    Default theme is dark; toggle button in the brand bar swaps to light.
+    Sentence-case headers via JS rewrite. Black + bold text for accessibility.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ :root {
+   --bg:      #f6f7fa;
+   --panel:   #ffffff;
+   --panel2:  #f9fafb;
+   --border:  #d1d6df;
+   --text:    #000000;
+   --muted:   #000000;
+   --subtle:  #1a2332;
+   --swift-orange: #f26522;
+   --swift-red:    #e63027;
+   --swift-navy:   #000000;
+ }
+ body {
+   background: var(--bg); color: var(--text);
+   font-size: 15px; line-height: 1.55; margin: 0; padding: 0;
+   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   -webkit-font-smoothing: antialiased; scroll-behavior: smooth;
+ }
+
+ /* ─── Brand bar (top) ─── */
+ .top-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   padding: 28px 40px;
+   border-bottom: 4px solid var(--swift-orange);
+   box-shadow: 0 4px 12px rgba(15,26,42,0.18);
+ }
+ .top-band .brand-bar {
+   display: flex; align-items: center; gap: 22px;
+   max-width: 1600px; margin: 0 auto;
+ }
+ .top-band .brand-logo { display: inline-flex; align-items: center; }
+ .top-band .brand-logo img.brand-mark-img {
+   height: 58px; width: auto; display: block;
+ }
+ .top-band .report-meta {
+   display: flex; flex-direction: column; justify-content: center;
+   padding-left: 22px; margin-left: 16px;
+   border-left: 1px solid rgba(255,255,255,0.18); min-height: 50px;
+ }
+ .top-band .report-title {
+   color: #ffffff; font-size: 24px; font-weight: 800;
+   letter-spacing: -0.015em; line-height: 1.15;
+ }
+ .top-band .report-period {
+   color: #c5cfde; font-size: 14px; font-weight: 500;
+   margin-top: 5px; letter-spacing: 0.01em;
+ }
+ .top-band .spacer { flex: 1; }
+ .top-band .legend {
+   display: inline-flex; align-items: center; gap: 8px;
+   font-size: 11px; color: #d4dae6;
+ }
+ .top-band .legend .swatch {
+   display:inline-block; width:11px; height:11px; border-radius:3px;
+   margin-right:3px; box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+ }
+ .theme-toggle {
+   width: 36px; height: 36px;
+   display: inline-flex; align-items: center; justify-content: center;
+   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+   border-radius: 8px; color: #ffffff; font-size: 16px; cursor: pointer;
+   transition: background 200ms ease, transform 80ms ease; margin-left: 10px;
+ }
+ .theme-toggle:hover { background: rgba(255,255,255,0.14); }
+ .theme-toggle:active { transform: scale(0.94); }
+ .theme-toggle .icon-sun { display: none; }
+ .theme-toggle .icon-moon { display: inline; }
+ body.dark-mode .theme-toggle .icon-sun { display: inline; }
+ body.dark-mode .theme-toggle .icon-moon { display: none; }
+
+ /* ─── Main content wrapper ─── */
+ .content { max-width: 1600px; margin: 0 auto; padding: 28px 36px 12px; }
+
+ /* ─── Footer band ─── */
+ .footer-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   color: #b8c2d4; padding: 24px 36px; margin-top: 48px;
+   border-top: 4px solid var(--swift-orange);
+ }
+ .footer-band .footer-inner {
+   max-width: 1600px; margin: 0 auto;
+   display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+   font-size: 11.5px; line-height: 1.6;
+ }
+ .footer-band .footer-brand {
+   display: inline-flex; align-items: center; gap: 10px;
+   color: #ffffff; font-weight: 600; font-size: 13px;
+ }
+ .footer-band .footer-brand img { height: 34px; width: auto; opacity: 0.95; }
+ .footer-band .spacer { flex: 1; }
+ .footer-band code { background: rgba(255,255,255,0.08) !important;
+                       color: #d4dae6 !important; }
+
+ /* ─── Cards: softened borders + shadow ─── */
+ .row1 .panel, .path-kpi, .row1b .panel, .metric-block, .silent-panel,
+ .status-rundown, .accuracy-panel, .country-panel, .methodology-banner {
+   background: #ffffff !important;
+   border: 1.5px solid #d1d6df !important;
+   border-radius: 14px !important;
+   box-shadow: 0 2px 6px rgba(15,26,42,0.08) !important;
+ }
+
+ /* Header rule overrides — sentence case via JS, but kill text-transform */
+ h1, h2, h3, h2 * { text-transform: none !important;
+                      letter-spacing: -0.01em !important;
+                      color: #0a0e15 !important; font-weight: 800 !important; }
+ h2 { font-size: 22px !important; margin: 36px 0 10px !important; }
+
+ /* All secondary text black + bold */
+ .row1 .kpi-label, .path-kpi .lbl, .accuracy-table thead th,
+ .row1b .panel .header .title, .metric-title, .status-rundown-title {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+ .row1 .kpi-sub, .row1 .kpi-sub *, .section-sub, .section-sub *,
+ .path-kpi .pct, .accuracy-table .acc-notes,
+ .row1b .panel .stat .ct, .row1b .panel .stat .lbl,
+ .status-rundown-table .rundown-desc, .status-rundown-table .rundown-count,
+ .trend-legend, .trend-legend * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .row1 .kpi-value { font-weight: 800 !important; }
+ .path-kpi .val   { font-weight: 800 !important; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    LIGHT MODE: PURE BLACK + EXTRA BOLD EVERYWHERE (2026-06-21)
+    User wants maximum readability when dark mode is off. Force #000000 on every
+    text element + bump font weights one level. body.light-mode prefix means
+    these rules don't apply when dark mode is on.
+    ═══════════════════════════════════════════════════════════════════════════ */
+ body.light-mode, body:not(.dark-mode) {
+   color: #000000 !important;
+ }
+ body.light-mode *,
+ body:not(.dark-mode) * {
+   color: #000000;
+ }
+ /* Headers / labels go heavier */
+ body.light-mode h1, body:not(.dark-mode) h1 { color: #000000 !important; font-weight: 900 !important; }
+ body.light-mode h2, body:not(.dark-mode) h2 { color: #000000 !important; font-weight: 900 !important; }
+ body.light-mode h3, body:not(.dark-mode) h3 { color: #000000 !important; font-weight: 800 !important; }
+ body.light-mode .row1 .kpi-label, body:not(.dark-mode) .row1 .kpi-label,
+ body.light-mode .path-kpi .lbl, body:not(.dark-mode) .path-kpi .lbl,
+ body.light-mode .accuracy-table thead th, body:not(.dark-mode) .accuracy-table thead th,
+ body.light-mode .status-rundown-table thead th, body:not(.dark-mode) .status-rundown-table thead th,
+ body.light-mode .status-rundown-title, body:not(.dark-mode) .status-rundown-title,
+ body.light-mode .row1b .panel .header .title, body:not(.dark-mode) .row1b .panel .header .title,
+ body.light-mode .metric-title, body:not(.dark-mode) .metric-title {
+   color: #000000 !important; font-weight: 800 !important;
+ }
+ body.light-mode .row1 .kpi-sub, body:not(.dark-mode) .row1 .kpi-sub,
+ body.light-mode .row1 .kpi-sub *, body:not(.dark-mode) .row1 .kpi-sub *,
+ body.light-mode .section-sub, body:not(.dark-mode) .section-sub,
+ body.light-mode .section-sub *, body:not(.dark-mode) .section-sub *,
+ body.light-mode .path-kpi .pct, body:not(.dark-mode) .path-kpi .pct,
+ body.light-mode .accuracy-table .acc-notes, body:not(.dark-mode) .accuracy-table .acc-notes,
+ body.light-mode .accuracy-table .acc-metric, body:not(.dark-mode) .accuracy-table .acc-metric,
+ body.light-mode .status-rundown-table .rundown-desc, body:not(.dark-mode) .status-rundown-table .rundown-desc,
+ body.light-mode .status-rundown-table .rundown-count, body:not(.dark-mode) .status-rundown-table .rundown-count,
+ body.light-mode .row1b .panel .stat .lbl, body:not(.dark-mode) .row1b .panel .stat .lbl,
+ body.light-mode .row1b .panel .stat .ct, body:not(.dark-mode) .row1b .panel .stat .ct,
+ body.light-mode .row1b .panel .stat .lst, body:not(.dark-mode) .row1b .panel .stat .lst,
+ body.light-mode .row1b .panel .header .total, body:not(.dark-mode) .row1b .panel .header .total,
+ body.light-mode .trend-legend, body:not(.dark-mode) .trend-legend,
+ body.light-mode .trend-legend *, body:not(.dark-mode) .trend-legend *,
+ body.light-mode .silent-panel, body:not(.dark-mode) .silent-panel,
+ body.light-mode .silent-panel *, body:not(.dark-mode) .silent-panel * {
+   color: #000000 !important; font-weight: 700 !important;
+ }
+ /* KPI big numbers — keep semantic colors but bump weight to 900 */
+ body.light-mode .row1 .kpi-value, body:not(.dark-mode) .row1 .kpi-value {
+   font-weight: 900 !important;
+ }
+ body.light-mode .path-kpi .val, body:not(.dark-mode) .path-kpi .val {
+   font-weight: 900 !important;
+ }
+
+ /* Per-station bar rows — explicit `body.light-mode` prefix targets only light
+    mode (so dark mode keeps its rules below); pure black + weight 800 for
+    maximum contrast and to overcome small-font anti-aliasing washout */
+ body.light-mode .station-row .nm { color: #000000 !important; font-weight: 800 !important;
+                                       font-size: 11.5px !important; }
+ body.light-mode .station-row .barwrap { background: #eef0f4 !important;
+                                            border: 1px solid #d1d6df !important; }
+ body.light-mode .station-row .timing { color: #000000 !important; font-weight: 700 !important;
+                                           font-size: 11px !important; }
+ body.light-mode .station-row .timing .up { color: #064e26 !important; font-weight: 800 !important; }
+ body.light-mode .station-row .timing .dn { color: #8b1f0a !important; font-weight: 800 !important; }
+ body.light-mode .station-row .timing .dn.zero { color: #44546b !important; }
+ body.light-mode .station-row:hover { background: #f5f7fa !important; }
+ /* Fallback (no class) — match light-mode in case JS hasn't run yet */
+ body:not(.dark-mode) .station-row .nm { color: #000000 !important; font-weight: 800 !important; }
+ body:not(.dark-mode) .station-row .timing { color: #000000 !important; font-weight: 700 !important; }
+
+ /* Dark mode counterpart (higher specificity for the dark-mode case too) */
+ body.dark-mode .station-row .nm { color: #f0f4f8 !important; }
+ body.dark-mode .station-row .timing { color: #f0f4f8 !important; }
+ body.dark-mode .station-row .timing .up { color: #4ade80 !important; }
+ body.dark-mode .station-row .timing .dn { color: #f87171 !important; }
+ body.dark-mode .station-row .timing .dn.zero { color: #b8c2d4 !important; }
+ body.dark-mode .station-row .barwrap { background: #2a3343 !important;
+                                          border-color: #364152 !important; }
+ body.dark-mode .station-row:hover { background: rgba(255,255,255,0.03) !important; }
+
+ /* Path table */
+ .path-table tbody td, .path-table tbody td * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .path-table .pc-status.pc-ok    { color: #0f6033 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-warn  { color: #a72f12 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-info  { color: #1d4ed8 !important; font-weight: 800 !important; }
+ .path-table .pc-status.pc-mild  { color: #92400e !important; font-weight: 800 !important; }
+ .path-table th { color: #0a0e15 !important; background: #eef0f4 !important;
+                    font-weight: 700 !important; }
+
+ /* Hide technical metric tag names — partner-facing report shouldn't show them */
+ .row1b .panel .header .tag, .metric-block .metric-tag,
+ .metric-block .metric-header .metric-tag { display: none !important; }
+
+ /* Code spans */
+ code { color: #0a4a8f !important; background: #e0eaf7 !important;
+         font-weight: 600 !important; border-radius: 4px; padding: 2px 6px; }
+
+ /* ─── DARK MODE ─── */
+ body.dark-mode {
+   --bg: #0a0e15; --panel: #14202e; --panel2: #1a2734;
+   --border: #2a3343; --text: #f0f4f8; --muted: #b8c2d4; --subtle: #8a93a0;
+   background: var(--bg); color: var(--text);
+ }
+ body.dark-mode .top-band, body.dark-mode .footer-band {
+   background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%) !important;
+ }
+ body.dark-mode .row1 .panel, body.dark-mode .path-kpi,
+ body.dark-mode .row1b .panel, body.dark-mode .metric-block,
+ body.dark-mode .silent-panel, body.dark-mode .accuracy-panel,
+ body.dark-mode .status-rundown, body.dark-mode .methodology-banner {
+   background: var(--panel) !important; border: 1.5px solid var(--border) !important;
+   box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+ }
+ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3,
+ body.dark-mode .row1 .kpi-label, body.dark-mode .path-kpi .lbl,
+ body.dark-mode .row1 .kpi-sub, body.dark-mode .row1 .kpi-sub *,
+ body.dark-mode .section-sub, body.dark-mode .section-sub *,
+ body.dark-mode .path-kpi .pct,
+ body.dark-mode .accuracy-table thead th, body.dark-mode .accuracy-table .acc-notes,
+ body.dark-mode .accuracy-table .acc-metric,
+ body.dark-mode .status-rundown-table .rundown-desc,
+ body.dark-mode .status-rundown-table .rundown-count,
+ body.dark-mode .row1b .panel .header .title, body.dark-mode .row1b .panel .header .total,
+ body.dark-mode .row1b .panel .stat .lbl, body.dark-mode .row1b .panel .stat .ct,
+ body.dark-mode .row1b .panel .stat .lst,
+ body.dark-mode .metric-title,
+ body.dark-mode .station-row .nm, body.dark-mode .station-row .timing,
+ body.dark-mode .path-table tbody td, body.dark-mode .path-table tbody td *,
+ body.dark-mode .path-table th, body.dark-mode .trend-legend,
+ body.dark-mode .trend-legend *, body.dark-mode .silent-panel * {
+   color: var(--text) !important;
+ }
+ body.dark-mode .station-row .barwrap { background: #2a3343 !important;
+                                          border-color: #364152 !important; }
+ body.dark-mode .path-table th { background: #1a2734 !important; }
+ body.dark-mode .station-row .timing .up,
+ body.dark-mode .path-table .pc-status.pc-ok { color: #4ade80 !important; }
+ body.dark-mode .station-row .timing .dn,
+ body.dark-mode .path-table .pc-status.pc-warn { color: #f87171 !important; }
+ body.dark-mode .path-table .pc-status.pc-info { color: #60a5fa !important; }
+ body.dark-mode .path-table .pc-status.pc-mild { color: #fcd34d !important; }
+ body.dark-mode .row1 .kpi-value[style*="#e88c1a"] { color: #fb923c !important; }
+ body.dark-mode .row1 .kpi-value[style*="#d9c623"] { color: #fcd34d !important; }
+ body.dark-mode .row1 .kpi-value[style*="#1ec773"] { color: #4ade80 !important; }
+ body.dark-mode code { color: #93c5fd !important;
+                         background: rgba(96,165,250,0.12) !important; }
+ body.dark-mode .quality-badge.badge-direct { background: rgba(74,222,128,0.18) !important; color: #4ade80 !important; }
+ body.dark-mode .quality-badge.badge-inferred { background: rgba(96,165,250,0.18) !important; color: #93c5fd !important; }
+ body.dark-mode .quality-badge.badge-estimated { background: rgba(252,211,77,0.18) !important; color: #fcd34d !important; }
+ body.dark-mode .quality-badge.badge-na { color: var(--muted) !important; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    BETA: Light theme + Swift Navigation brand
+    Overrides production's dark CSS variables. Production's structural rules
+    (.row1, .panel, .kpi-label, etc.) still apply — we just retheme.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ :root {
+   --bg:      #f6f7fa;        /* page bg — soft cream/grey */
+   --panel:   #ffffff;         /* card bg */
+   --panel2:  #f9fafb;         /* alternate card */
+   --border:  #e3e6ec;         /* hairline */
+   --text:    #1a2332;         /* primary text — Swift navy (matches "swift" wordmark) */
+   --muted:   #44546b;         /* secondary text — readable mid-navy, not light grey */
+   --subtle:  #6b7785;         /* tertiary (use sparingly) */
+   /* Swift brand */
+   --swift-orange: #f26522;
+   --swift-red:    #e63027;
+   --swift-coral:  #ee7a36;
+   --swift-navy:   #1a2332;
+ }
+
+ body {
+   background: var(--bg);
+   color: var(--text);
+   font-size: 15px;
+   line-height: 1.55;
+   margin: 0;
+   padding: 0;
+   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+   scroll-behavior: smooth;
+ }
+
+ /* ─── Dark navy header band — anchors the report visually ─── */
+ .top-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   padding: 28px 40px;
+   border-bottom: 4px solid var(--swift-orange);
+   box-shadow: 0 4px 12px rgba(15,26,42,0.18);
+ }
+ .top-band .brand-bar {
+   display: flex; align-items: center; gap: 22px;
+   max-width: 1600px; margin: 0 auto;
+   background: transparent; box-shadow: none; padding: 0; border: 0;
+ }
+ .top-band .brand-logo { display: inline-flex; align-items: center; gap: 0; }
+ .top-band .brand-logo img.brand-mark-img {
+   height: 58px; width: auto; display: block;
+ }
+ .top-band .report-meta { display: flex; flex-direction: column; justify-content: center;
+                           padding-left: 22px; margin-left: 16px;
+                           border-left: 1px solid rgba(255,255,255,0.18);
+                           min-height: 50px; }
+ .top-band .report-title { color: #ffffff; font-size: 24px; font-weight: 800;
+                            letter-spacing: -0.015em; line-height: 1.15; }
+ .top-band .report-period { color: #c5cfde; font-size: 14px; font-weight: 500;
+                             margin-top: 5px; letter-spacing: 0.01em; }
+ .top-band .spacer { flex: 1; }
+ .top-band .legend { display: inline-flex; align-items: center; gap: 8px;
+                      font-size: 11px; color: #b8c2d4; }
+ .top-band .legend .swatch { display:inline-block; width:11px; height:11px;
+                              border-radius:3px; margin-right:3px;
+                              box-shadow: 0 0 0 1px rgba(255,255,255,0.15); }
+
+ /* ─── Main content wrapper ─── */
+ .content {
+   max-width: 1600px; margin: 0 auto; padding: 28px 36px 12px;
+ }
+ .brand-bar .report-title { font-size: 19px; font-weight: 700; color: var(--text);
+                              letter-spacing: -0.01em; }
+ .brand-bar .report-period { color: var(--muted); font-size: 13px; }
+ .brand-bar .spacer { flex: 1; }
+ .brand-bar .legend { display: inline-flex; align-items: center; gap: 6px;
+                       font-size: 11px; color: var(--muted); }
+ .brand-bar .legend span { display:inline-block; width:10px; height:10px;
+                            border-radius:2px; margin-right:3px; }
+
+ /* ─── Tab-style region selector — sticky, with senior polish ─── */
+ .region-tabs {
+   display: flex; gap: 6px; padding: 6px;
+   background: rgba(255,255,255,0.96);
+   backdrop-filter: blur(8px);
+   -webkit-backdrop-filter: blur(8px);
+   border: 1px solid var(--border);
+   border-radius: 14px;
+   box-shadow: 0 4px 16px rgba(15,26,42,0.06), 0 1px 2px rgba(15,26,42,0.04);
+   margin-bottom: 22px;
+   position: sticky; top: 12px; z-index: 100;
+ }
+ .region-tab {
+   flex: 1; padding: 12px 18px; border-radius: 10px;
+   font-size: 13.5px; font-weight: 600; letter-spacing: 0.01em;
+   color: var(--muted); cursor: pointer; text-align: center;
+   transition: background 220ms cubic-bezier(0.4, 0, 0.2, 1),
+               color    220ms cubic-bezier(0.4, 0, 0.2, 1),
+               box-shadow 220ms cubic-bezier(0.4, 0, 0.2, 1),
+               transform 80ms ease;
+   border: 1px solid transparent;
+   background: transparent;
+   font-family: inherit; outline: none;
+ }
+ .region-tab:hover { background: #f1f3f7; color: var(--text); }
+ .region-tab:active { transform: scale(0.985); }
+ .region-tab:focus-visible {
+   box-shadow: 0 0 0 3px rgba(242,101,34,0.35);
+   border-color: var(--swift-orange);
+ }
+ .region-tab.active {
+   background: linear-gradient(135deg, var(--swift-orange) 0%, var(--swift-red) 100%);
+   color: #ffffff;
+   box-shadow: 0 4px 14px rgba(242,101,34,0.32),
+               inset 0 1px 0 rgba(255,255,255,0.18);
+ }
+ .region-tab.active:hover { color: #ffffff; }
+ .region-tab.tab-overview { font-weight: 700; }
+ .region-tab.tab-overview::before { content: '◉ '; opacity: 0.85; }
+
+ .region-selector { display: none !important; }
+
+ /* Smooth fade + slide transitions when switching regions */
+ .region-section {
+   display: none; opacity: 0;
+   transform: translateY(8px);
+   transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1),
+               transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+ }
+ .region-section.active {
+   display: block; opacity: 1; transform: translateY(0);
+ }
+
+ /* ─── Dark navy footer band (mirrors top band) ─── */
+ .footer-band {
+   background: linear-gradient(135deg, #0f1a2a 0%, #1a2332 60%, #232f44 100%);
+   color: #b8c2d4; padding: 24px 36px;
+   margin-top: 48px;
+   border-top: 4px solid var(--swift-orange);
+ }
+ .footer-band .footer-inner {
+   max-width: 1600px; margin: 0 auto;
+   display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+   font-size: 11.5px; line-height: 1.6;
+ }
+ .footer-band .footer-brand { display: inline-flex; align-items: center; gap: 10px;
+                                color: #ffffff; font-weight: 600; font-size: 13px;
+                                letter-spacing: -0.01em; }
+ .footer-band .footer-brand img { height: 34px; width: auto; opacity: 0.95; }
+ .footer-band .spacer { flex: 1; }
+ .footer-band code { background: rgba(255,255,255,0.08) !important;
+                      color: #d4dae6 !important; }
+
+ /* ─── Cards: soft white with subtle shadow ─── */
+ .panel, .row1 .panel, .path-kpi, .metric-block, .silent-panel,
+ .status-rundown, .accuracy-panel, .methodology-banner, .country-panel {
+   background: #ffffff !important;
+   border: 1px solid var(--border) !important;
+   border-radius: 14px !important;
+   box-shadow: 0 1px 3px rgba(20,30,50,0.05);
+ }
+ .row1 { gap: 14px; margin-top: 4px; }
+ .row1 .panel { padding: 20px 22px; }
+
+ /* ─── Typography hierarchy (Tier 1) ─── */
+ h2 { font-size: 22px !important; font-weight: 700 !important;
+      letter-spacing: -0.01em !important; color: var(--text) !important;
+      margin: 36px 0 10px !important; text-transform: none !important; }
+ .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px;
+                line-height: 1.6; }
+
+ /* KPI tiles — bigger, more confident numbers */
+ .row1 .kpi-label, .path-kpi .lbl, .accuracy-table thead th, .country-title,
+ .status-rundown-title {
+   color: var(--muted) !important; font-size: 10.5px !important;
+   font-weight: 700 !important; letter-spacing: 0.12em !important;
+   text-transform: uppercase !important;
+ }
+ .row1 .kpi-value { font-size: 38px !important; font-weight: 700 !important;
+                     line-height: 1.05 !important; margin-top: 10px !important;
+                     letter-spacing: -0.02em !important; }
+ .row1 .kpi-sub, .path-kpi .pct { color: var(--muted) !important;
+                                   font-size: 11.5px !important; }
+ .path-kpi { padding: 18px 20px !important; }
+ .path-kpi .val { font-size: 28px !important; font-weight: 700 !important;
+                  line-height: 1.05 !important; letter-spacing: -0.02em !important; }
+
+ /* Status colors — Swift-friendly palette (slightly softened from dark theme) */
+ .kpi-value[style*="#e88c1a"], .path-kpi .val.pc-warn-text,
+ .badge-direct, .pc-ok, .pc-ok-text { color: #d97a17 !important; }
+ .row1 .kpi-value[style*="#d9c623"] { color: #d4a017 !important; }
+ .kpi-value[style*="#1ec773"], .path-kpi .val.pc-ok-text,
+ .pc-ok-text { color: #15803d !important; }
+ .pc-warn-text, .pc-warn { color: var(--swift-red) !important; }
+ .pc-info { color: #2563eb !important; }
+
+ /* Code spans / inline mono */
+ code { background: #eff1f5 !important; color: #5b6470 !important;
+        padding: 2px 6px !important; border-radius: 4px !important;
+        font-size: 0.85em !important; }
+
+ /* Tables — soften */
+ table { background: transparent !important; }
+ .path-table th { background: #f9fafb !important; color: var(--muted) !important;
+                  font-size: 11px !important; font-weight: 700 !important;
+                  letter-spacing: 0.08em !important; padding: 12px 14px !important; }
+ .path-table td { padding: 11px 14px !important; border-bottom: 1px solid #eef0f4 !important;
+                  color: var(--text) !important; }
+ .path-table tr:hover td { background: #fafbfc !important; }
+
+ /* Overview banner — Swift gradient accent */
+ .overview-banner {
+   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+   margin-top: 0; padding: 18px 22px; border-radius: 14px;
+   background: linear-gradient(135deg, #fff5ed 0%, #ffe6d7 100%);
+   border: 1px solid #f5d5b8; border-left: 4px solid var(--swift-orange);
+   box-shadow: 0 1px 3px rgba(20,30,50,0.05); margin-bottom: 16px;
+ }
+ .overview-banner .chip { background: var(--swift-orange); color: #ffffff;
+                           padding: 5px 11px; border-radius: 6px; font-size: 10.5px;
+                           font-weight: 700; letter-spacing: 0.12em; }
+ .overview-banner .title { font-size: 15px; font-weight: 700; color: var(--text); }
+ .overview-banner .subtitle { color: var(--muted); font-size: 12.5px; }
+
+ /* Executive summary line (one-sentence headline per region) */
+ .exec-line {
+   background: #ffffff; border: 1px solid var(--border); border-radius: 14px;
+   padding: 18px 24px; margin-bottom: 16px;
+   font-size: 14.5px; color: var(--text); line-height: 1.6;
+   box-shadow: 0 1px 3px rgba(20,30,50,0.05);
+ }
+ .exec-line strong { color: var(--text); font-weight: 700; }
+ .exec-line .accent-good { color: #15803d; font-weight: 700; }
+ .exec-line .accent-warn { color: var(--swift-red); font-weight: 700; }
+
+ /* Tooltips on metric labels (Tier 2 — uses default browser title= behaviour
+    + a subtle dotted underline cue) */
+ [title]:not(svg) { cursor: help; }
+ .row1 .kpi-label[title], .path-kpi .lbl[title] {
+   border-bottom: 1px dotted #c5cbd4; padding-bottom: 1px;
+ }
+
+ /* Hide production's dark legend bar (we replace it inside .brand-bar) */
+ body > div:first-of-type > .legend { display: none !important; }
+
+ /* Empty-region card */
+ .region-empty { background: #ffffff; border: 1px dashed var(--border);
+                  border-radius: 14px; padding: 36px; text-align: center;
+                  color: var(--muted); font-style: italic;
+                  box-shadow: 0 1px 3px rgba(20,30,50,0.04); }
+
+ /* Section icons (Tier 1) — Unicode, no images */
+ h2.icon-emergency::before { content: '⚡ '; color: var(--swift-orange); }
+ h2.icon-path::before      { content: '🌐 '; }
+ h2.icon-station::before   { content: '📡 '; }
+ h2.icon-silent::before    { content: '🔇 '; }
+
+ /* Footer */
+ .report-footer { text-align: center; margin-top: 48px; padding: 24px;
+                   border-top: 1px solid var(--border);
+                   color: var(--muted); font-size: 12px; }
+
+ /* ─── Visibility fixes (2026-06-20) — pale text was unreadable ─── */
+ /* Methodology banner body — was production's --muted, now Swift navy */
+ .methodology-banner, .methodology-banner * { color: var(--text) !important; }
+ .methodology-banner .head { color: var(--swift-orange) !important;
+                              font-weight: 700 !important; letter-spacing: 0.08em !important; }
+ .methodology-banner code { background: #fff2e8 !important; color: #b8480f !important; }
+ .methodology-banner b, .methodology-banner strong { color: var(--swift-navy) !important; }
+
+ /* KPI sub-labels — bump contrast */
+ .row1 .kpi-sub { color: var(--muted) !important; font-weight: 500 !important; }
+ .row1 .kpi-sub br + span,
+ .row1 .kpi-sub span[style*="#5a6470"],
+ .row1 .kpi-sub span[style*="#a3aab5"] { color: var(--subtle) !important; }
+
+ /* Section subtitles */
+ .section-sub, .section-sub * { color: var(--muted) !important; }
+ .section-sub b, .section-sub strong { color: var(--text) !important; }
+
+ /* SAR Station Health internals */
+ .row1b .panel .stat .ct { color: var(--muted) !important; }
+ .row1b .panel .stat .lst { color: var(--subtle) !important; line-height: 1.6 !important; }
+ .row1b .panel .stat .lst.dn { color: var(--swift-red) !important; }
+ .row1b .panel .header .title { color: var(--text) !important; font-weight: 700 !important; }
+ .row1b .panel .header .tag, .row1b .panel .header .total { color: var(--muted) !important; }
+ .row1b .panel .stat .lbl { color: var(--muted) !important; }
+
+ /* Path connections internals */
+ .path-kpi .pct { color: var(--muted) !important; font-weight: 500 !important; }
+ .path-table .pc-name { color: var(--text) !important; font-weight: 600 !important; }
+ .path-table .pc-dur { color: var(--text) !important; }
+ .path-table .pc-dur .dur-secondary { color: #c2410c !important; }
+ .path-table .pc-dur .dur-wan  { color: #15803d !important; }
+ .path-table .pc-dur .dur-cell { color: #2563eb !important; }
+ .path-table .pc-dur .dur-sub { color: var(--subtle) !important; }
+
+ /* Status rundown + accuracy panel */
+ .status-rundown-table .rundown-desc { color: var(--text) !important; }
+ .status-rundown-table .rundown-count { color: var(--text) !important; font-weight: 700 !important; }
+ .accuracy-table .acc-metric { color: var(--text) !important; font-weight: 600 !important; }
+ .accuracy-table .acc-source code { color: #2563eb !important; background: #eff6ff !important; }
+ .accuracy-table .acc-notes { color: var(--muted) !important; }
+
+ /* Silent stations panel */
+ .silent-panel * { color: var(--text) !important; }
+ .silent-panel .silent-empty { color: var(--muted) !important; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    TIER A — FORCE-LIGHT OVERRIDES (2026-06-20)
+    Production CSS uses dark-theme colors (#c8ced8 station names, #0f1218 bar
+    tracks, #5a6470 muted text). On our light cards these become invisible.
+    These rules sit LAST so cascade specificity reaches them.
+    WCAG AA verified: all body text ≥4.5:1 contrast against white cards.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ /* Per-station availability bars (the long FRMG0xFRA / ATFS0xAUT lists) */
+ .station-row .nm {
+   color: var(--text) !important;
+   font-weight: 600 !important;
+   font-size: 11.5px !important;
+ }
+ .station-row .barwrap {
+   background: #eef0f4 !important;
+   border: 1px solid #e3e6ec !important;
+ }
+ .station-row .timing { color: var(--muted) !important; font-weight: 500 !important; }
+ .station-row .timing .pct { color: var(--text) !important; font-weight: 700 !important; }
+ .station-row .timing .up { color: #15803d !important; font-weight: 600 !important; }
+ .station-row .timing .dn { color: #c2410c !important; font-weight: 600 !important; }
+ .station-row .timing .dn.zero { color: var(--subtle) !important; font-weight: 500 !important; }
+ .station-row:hover { background: #f5f7fa !important; }
+
+ /* SAR Connection Online / Adel UPS / Orion metric blocks — labels */
+ .metric-block .meta, .metric-block .meta * { color: var(--muted) !important; }
+ .metric-block .header .title { color: var(--text) !important; font-weight: 700 !important; }
+
+ /* SILENCED block — the orange-banded silent section */
+ .silenced-banner, .silenced-banner * { color: var(--text) !important; }
+ .silenced-banner .head { color: var(--swift-orange) !important; font-weight: 700 !important; }
+
+ /* NON-PROD block — the grey-banded non-production section */
+ .nonprod-banner, .nonprod-banner * { color: var(--muted) !important; }
+ .nonprod-banner .head { color: var(--text) !important; font-weight: 700 !important; }
+ .nonprod-banner .station-row .nm { color: var(--muted) !important; }
+ .non-prod-pill { background: #eef0f4 !important; color: var(--muted) !important;
+                   padding: 1px 6px; border-radius: 3px; font-size: 9.5px;
+                   font-weight: 700; letter-spacing: 0.08em; }
+
+ /* Power Infrastructure Health long station lists — readable but compact */
+ .row1b .panel .stat .lst { color: var(--text) !important;
+                              font-size: 11px !important;
+                              line-height: 1.7 !important;
+                              opacity: 0.92; }
+ .row1b .panel .stat .lst.dn { color: #c2410c !important; opacity: 1; }
+
+ /* Path Connections per-station table — full row contrast */
+ .path-table tbody td, .path-table tbody td * { color: var(--text) !important; }
+ .path-table .pc-status { font-weight: 700 !important; }
+ .path-table .pc-status.pc-ok { color: #15803d !important; }
+ .path-table .pc-status.pc-info { color: #2563eb !important; }
+ .path-table .pc-status.pc-warn { color: var(--swift-red) !important; }
+ .path-table .pc-status.pc-mild { color: #b45309 !important; }
+ .path-table .pc-current.pc-ok { color: #15803d !important; }
+ .path-table .pc-current.pc-info { color: #2563eb !important; }
+ .path-table .pc-current.pc-warn { color: var(--swift-red) !important; }
+ .path-table .pc-dur .dur-secondary { color: #c2410c !important; }
+ .path-table .pc-dur .dur-sub { color: var(--subtle) !important; font-weight: 500 !important; }
+ .path-table th { color: var(--muted) !important; background: #f5f7fa !important;
+                  border-bottom: 1.5px solid var(--border) !important; }
+
+ /* Code spans everywhere */
+ code, .methodology-banner code, .accuracy-table code, .footer-band code {
+   font-family: 'SF Mono', Menlo, 'Courier New', monospace !important;
+ }
+
+ /* Card borders — slightly darker for visual weight without going dark */
+ .row1 .panel, .path-kpi, .row1b .panel, .accuracy-panel,
+ .status-rundown, .country-panel, .exec-line, .overview-banner {
+   border: 1.5px solid #d1d6df !important;
+   box-shadow: 0 2px 6px rgba(15,26,42,0.08) !important;
+ }
+
+ /* Header band — title gets subtle text-shadow + period gets brighter contrast */
+ .top-band .report-title {
+   color: #ffffff !important;
+   font-weight: 800 !important;
+   text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+ }
+ .top-band .report-period {
+   color: #e5ebf5 !important;
+   font-weight: 500 !important;
+ }
+ .top-band .legend { color: #d4dae6 !important; }
+
+ /* Disable text-transform on all section headers — sentence case looks more
+    professional / executive than ALL CAPS (per multi-disciplinary lens) */
+ h1, h2, h3, h2 *, h3 *, h2.icon-emergency, h2.icon-path, h2.icon-station {
+   text-transform: none !important;
+   letter-spacing: -0.01em !important;
+ }
+
+ /* Quieter, more executive OVERVIEW banner — replaces bright orange gradient */
+ .overview-banner {
+   background: #ffffff !important;
+   border: 1.5px solid #d1d6df !important;
+   border-left: 4px solid var(--swift-orange) !important;
+   box-shadow: 0 2px 6px rgba(15,26,42,0.08) !important;
+ }
+ .overview-banner .chip {
+   background: rgba(242,101,34,0.10) !important;
+   color: var(--swift-orange) !important;
+   border: 1px solid rgba(242,101,34,0.25);
+   font-weight: 700 !important;
+ }
+ .overview-banner .title { color: var(--text) !important; font-weight: 700 !important; }
+ .overview-banner .subtitle { color: var(--muted) !important; }
+
+ /* Executive summary line — left accent so it visually anchors */
+ .exec-line {
+   border-left: 4px solid var(--swift-orange) !important;
+ }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    FINAL PASS — FORCE BLACK + BOLD ON ALL SECONDARY TEXT (2026-06-21)
+    User feedback: secondary/body text was still too light. Push everything
+    to near-black + font-weight 600 so it reads. Semantic colors (status
+    badges, accent KPI values) preserved via more-specific overrides below.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ :root {
+   --text:   #0a0e15;  /* even darker than before — almost black */
+   --muted:  #1a2332;  /* Swift navy — was #44546b */
+   --subtle: #1a2332;  /* match muted — was #6b7785 */
+ }
+
+ /* Body baseline weight bump */
+ body, body p, body div, body span, body td { font-weight: 500; }
+
+ /* KPI tile sub-labels */
+ .row1 .kpi-sub, .row1 .kpi-sub *,
+ .row1 .kpi-sub span[style] {
+   color: #0a0e15 !important;
+   font-weight: 600 !important;
+ }
+ .row1 .kpi-sub span[style*="#5a6470"],
+ .row1 .kpi-sub span[style*="#a3aab5"] {
+   color: #1a2332 !important;
+   font-weight: 500 !important;
+ }
+
+ /* Section subtitles + path KPI subtitles */
+ .section-sub, .section-sub *, .path-kpi .pct {
+   color: #0a0e15 !important;
+   font-weight: 600 !important;
+ }
+ .section-sub b, .section-sub strong, .section-sub code {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+
+ /* KPI labels (AVAILABILITY, HAD DOWNTIME, MAX UPTIME, etc.) */
+ .row1 .kpi-label, .path-kpi .lbl,
+ .accuracy-table thead th, .status-rundown-table thead th,
+ .country-title, .status-rundown-title,
+ .row1b .panel .stat .lbl, .row1b .panel .header .title,
+ .row1b .panel .header .tag, .row1b .panel .header .total {
+   color: #0a0e15 !important;
+   font-weight: 700 !important;
+ }
+
+ /* Power Infrastructure Health subtitle and station list */
+ .row1b .panel .stat .ct {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .row1b .panel .stat .lst {
+   color: #0a0e15 !important; font-weight: 500 !important; opacity: 1 !important;
+ }
+ .row1b .panel .stat .lst.dn {
+   color: #c2410c !important; font-weight: 700 !important;
+ }
+
+ /* DATA ACCURACY table */
+ .accuracy-table .acc-metric { color: #0a0e15 !important; font-weight: 700 !important; }
+ .accuracy-table .acc-notes  { color: #0a0e15 !important; font-weight: 500 !important; }
+ .accuracy-table .acc-source code {
+   color: #0a4a8f !important; background: #e0eaf7 !important; font-weight: 600 !important;
+ }
+ .acc-legend-title { color: #0a0e15 !important; font-weight: 700 !important; }
+ .acc-legend-desc  { color: #0a0e15 !important; font-weight: 500 !important; }
+
+ /* STATUS GUIDE rows */
+ .status-rundown-table .rundown-desc {
+   color: #0a0e15 !important; font-weight: 500 !important;
+ }
+ .status-rundown-table .rundown-count {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+
+ /* Path Connections per-station table */
+ .path-table tbody td, .path-table tbody td * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .path-table .pc-name { font-weight: 700 !important; }
+ .path-table .pc-status { font-weight: 700 !important; }
+ .path-table .pc-dur .dur-sub { color: #1a2332 !important; font-weight: 500 !important; }
+ .path-table th {
+   color: #0a0e15 !important; font-weight: 700 !important;
+   background: #eef0f4 !important;
+ }
+
+ /* Per-station availability bar rows */
+ .station-row .nm { color: #0a0e15 !important; font-weight: 700 !important; }
+ .station-row .timing { color: #0a0e15 !important; font-weight: 600 !important; }
+ .station-row .timing .pct { color: #0a0e15 !important; font-weight: 700 !important; }
+ .station-row .timing .dn.zero { color: #1a2332 !important; font-weight: 500 !important; }
+
+ /* Silent stations panel */
+ .silent-panel, .silent-panel * { color: #0a0e15 !important; font-weight: 500 !important; }
+ .silent-panel th { font-weight: 700 !important; }
+ .silent-panel td:first-child { font-weight: 700 !important; }
+ .silent-panel .silent-empty { color: #1a2332 !important; }
+
+ /* SILENCED / NON-PROD banners + their station rows */
+ .silenced-banner, .silenced-banner *,
+ .nonprod-banner,  .nonprod-banner * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+ .non-prod-pill {
+   background: #e3e6ec !important; color: #0a0e15 !important;
+   font-weight: 700 !important;
+ }
+
+ /* Executive summary line */
+ .exec-line, .exec-line strong {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+ .exec-line { font-weight: 600 !important; font-size: 15px !important; }
+
+ /* Overview banner */
+ .overview-banner .title, .overview-banner .subtitle {
+   color: #0a0e15 !important; font-weight: 700 !important;
+ }
+ .overview-banner .subtitle { font-weight: 600 !important; }
+
+ /* Region tabs (the inactive ones) */
+ .region-tab:not(.active) { color: #0a0e15 !important; font-weight: 700 !important; }
+ .region-tab.active { color: #ffffff !important; font-weight: 800 !important; }
+
+ /* Headers — extra weight */
+ h1, h2, h3 { color: #0a0e15 !important; font-weight: 800 !important; }
+
+ /* Inline code blocks */
+ code { color: #0a4a8f !important; font-weight: 600 !important;
+        background: #e0eaf7 !important; }
+
+ /* Trend legend (above per-station path table) */
+ .trend-legend, .trend-legend * {
+   color: #0a0e15 !important; font-weight: 600 !important;
+ }
+
+ /* PRESERVE: header band stays white (dark navy bg) */
+ .top-band, .top-band * { color: #ffffff !important; }
+ .top-band .report-title { font-weight: 800 !important; }
+ .top-band .report-period { font-weight: 600 !important; color: #e5ebf5 !important; }
+ .top-band .legend { font-weight: 600 !important; color: #d4dae6 !important; }
+ .top-band .brand-logo img { filter: brightness(1.0); }
+
+ /* PRESERVE: footer band stays white (dark navy bg) */
+ .footer-band, .footer-band * { color: #ffffff !important; font-weight: 500 !important; }
+ .footer-band code {
+   background: rgba(255,255,255,0.15) !important;
+   color: #ffffff !important; font-weight: 600 !important;
+ }
+ .footer-band .footer-brand { font-weight: 700 !important; }
+
+ /* PRESERVE: semantic status colors (green/red/orange) keep their hues but bold */
+ .pc-ok-text, .path-table .pc-status.pc-ok, .path-table .pc-current.pc-ok {
+   color: #0f6033 !important; font-weight: 800 !important;
+ }
+ .pc-warn-text, .path-table .pc-status.pc-warn, .path-table .pc-current.pc-warn {
+   color: #a72f12 !important; font-weight: 800 !important;
+ }
+ .path-table .pc-status.pc-info, .path-table .pc-current.pc-info {
+   color: #1d4ed8 !important; font-weight: 800 !important;
+ }
+ .path-table .pc-status.pc-mild {
+   color: #92400e !important; font-weight: 800 !important;
+ }
+ .station-row .timing .up { color: #0f6033 !important; font-weight: 800 !important; }
+ .station-row .timing .dn { color: #a72f12 !important; font-weight: 800 !important; }
+ .row1 .kpi-value { font-weight: 800 !important; }
+ .path-kpi .val   { font-weight: 800 !important; }
+ .path-table .pc-dur .dur-secondary { color: #a72f12 !important; font-weight: 700 !important; }
+ .path-table .pc-dur .dur-wan       { color: #0f6033 !important; font-weight: 700 !important; }
+ .path-table .pc-dur .dur-cell      { color: #1d4ed8 !important; font-weight: 700 !important; }
+
+ /* Trend arrows in path-table */
+ .trend-arrow.trend-up   { color: #0f6033 !important; font-weight: 900 !important; }
+ .trend-arrow.trend-down { color: #a72f12 !important; font-weight: 900 !important; }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    HIDE TECHNICAL METRIC TAG NAMES (2026-06-21 per user)
+    Partner-facing report shouldn't expose Prometheus metric names. The titles
+    rename to plain English via Python (Station Health) + JS rewrite
+    (Connectivity Status). Here we drop the tag chips.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ /* Station Health panel + Power Infrastructure Health panel — both use .row1b */
+ .row1b .panel .header .tag { display: none !important; }
+
+ /* SAR Connection Online metric block (now "Connectivity Status") — production
+    uses .metric-title + .metric-tag (not .meta .tag). Hide the metric-tag chip. */
+ .metric-block .metric-tag,
+ .metric-block .metric-header .metric-tag,
+ .metric-block .meta .tag {
+   display: none !important;
+ }
+
+ /* Make sure the title is the only thing left, well-spaced */
+ .metric-block .metric-header,
+ .metric-block .meta { padding-bottom: 8px !important; }
+ .row1b .panel .header { gap: 8px; }
+
+ /* metric-title contrast (was rendered in production's dark-theme color) */
+ .metric-title {
+   color: #0a0e15 !important;
+   font-weight: 700 !important;
+   font-size: 14px !important;
+ }
+
+ /* ═══════════════════════════════════════════════════════════════════════════
+    DARK MODE (2026-06-21)
+    Activated by `body.dark-mode` class. Sits last in cascade with higher
+    specificity (body.dark-mode prefix) so it overrides the light-mode rules.
+    Status colors brightened for proper contrast against dark backgrounds.
+    Toggle button in the brand bar swaps + persists to localStorage.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+ body.dark-mode {
+   --bg:      #0a0e15;
+   --panel:   #14202e;
+   --panel2:  #1a2734;
+   --border:  #2a3343;
+   --text:    #f0f4f8;
+   --muted:   #b8c2d4;
+   --subtle:  #8a93a0;
+   background: var(--bg);
+   color: var(--text);
+ }
+
+ /* Top + footer bands — keep navy but slightly different shade from page bg */
+ body.dark-mode .top-band {
+   background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%) !important;
+   border-bottom-color: var(--swift-orange) !important;
+ }
+ body.dark-mode .footer-band {
+   background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%) !important;
+   border-top-color: var(--swift-orange) !important;
+ }
+
+ /* Sticky tab bar — frosted dark glass */
+ body.dark-mode .region-tabs {
+   background: rgba(20,32,46,0.92) !important;
+   border-color: var(--border) !important;
+   box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3) !important;
+ }
+ body.dark-mode .region-tab:not(.active) {
+   color: var(--muted) !important;
+ }
+ body.dark-mode .region-tab:not(.active):hover {
+   background: rgba(255,255,255,0.06) !important;
+   color: var(--text) !important;
+ }
+
+ /* Cards: dark panel bg, subtle border, soft shadow */
+ body.dark-mode .row1 .panel,
+ body.dark-mode .path-kpi,
+ body.dark-mode .row1b .panel,
+ body.dark-mode .metric-block,
+ body.dark-mode .silent-panel,
+ body.dark-mode .accuracy-panel,
+ body.dark-mode .status-rundown,
+ body.dark-mode .country-panel,
+ body.dark-mode .exec-line,
+ body.dark-mode .overview-banner {
+   background: var(--panel) !important;
+   border: 1.5px solid var(--border) !important;
+   box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02) inset !important;
+ }
+
+ /* Overview banner — subtle navy + Swift orange accent */
+ body.dark-mode .overview-banner {
+   background: linear-gradient(135deg, #1a2332 0%, #14202e 100%) !important;
+   border-left: 4px solid var(--swift-orange) !important;
+ }
+ body.dark-mode .overview-banner .chip {
+   background: rgba(242,101,34,0.18) !important;
+   color: #fb923c !important;
+   border: 1px solid rgba(242,101,34,0.4) !important;
+ }
+ body.dark-mode .overview-banner .title { color: var(--text) !important; }
+ body.dark-mode .overview-banner .subtitle { color: var(--muted) !important; }
+
+ /* Exec summary line */
+ body.dark-mode .exec-line { color: var(--text) !important; }
+ body.dark-mode .exec-line, body.dark-mode .exec-line strong { color: var(--text) !important; }
+ body.dark-mode .exec-line .accent-good { color: #4ade80 !important; }
+ body.dark-mode .exec-line .accent-warn { color: #f87171 !important; }
+
+ /* Force ALL text in cards to readable white-ish */
+ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3,
+ body.dark-mode .row1 .kpi-label, body.dark-mode .path-kpi .lbl,
+ body.dark-mode .row1 .kpi-sub, body.dark-mode .row1 .kpi-sub *,
+ body.dark-mode .section-sub, body.dark-mode .section-sub *,
+ body.dark-mode .path-kpi .pct,
+ body.dark-mode .status-rundown-title, body.dark-mode .country-title,
+ body.dark-mode .acc-legend-title, body.dark-mode .acc-legend-desc,
+ body.dark-mode .accuracy-table thead th,
+ body.dark-mode .status-rundown-table thead th,
+ body.dark-mode .accuracy-table .acc-metric,
+ body.dark-mode .accuracy-table .acc-notes,
+ body.dark-mode .status-rundown-table .rundown-desc,
+ body.dark-mode .status-rundown-table .rundown-count,
+ body.dark-mode .trend-legend, body.dark-mode .trend-legend *,
+ body.dark-mode .silent-panel, body.dark-mode .silent-panel *,
+ body.dark-mode .silenced-banner, body.dark-mode .silenced-banner *,
+ body.dark-mode .nonprod-banner, body.dark-mode .nonprod-banner *,
+ body.dark-mode .row1b .panel .header .title,
+ body.dark-mode .row1b .panel .header .total,
+ body.dark-mode .row1b .panel .stat .lbl,
+ body.dark-mode .row1b .panel .stat .ct,
+ body.dark-mode .row1b .panel .stat .lst,
+ body.dark-mode .metric-title,
+ body.dark-mode .station-row .nm,
+ body.dark-mode .station-row .timing,
+ body.dark-mode .station-row .timing .pct,
+ body.dark-mode .path-table tbody td, body.dark-mode .path-table tbody td *,
+ body.dark-mode .path-table th,
+ body.dark-mode .path-table .pc-name,
+ body.dark-mode .path-table .pc-dur {
+   color: var(--text) !important;
+ }
+
+ /* Muted helpers */
+ body.dark-mode .row1 .kpi-sub span[style*="#5a6470"],
+ body.dark-mode .row1 .kpi-sub span[style*="#a3aab5"],
+ body.dark-mode .path-table .pc-dur .dur-sub,
+ body.dark-mode .station-row .timing .dn.zero {
+   color: var(--muted) !important;
+ }
+
+ /* Bar tracks — back to dark */
+ body.dark-mode .station-row .barwrap {
+   background: #2a3343 !important;
+   border-color: #364152 !important;
+ }
+ body.dark-mode .station-row:hover { background: rgba(255,255,255,0.03) !important; }
+
+ /* Tables */
+ body.dark-mode .path-table th {
+   background: #1a2734 !important;
+   border-bottom-color: var(--border) !important;
+ }
+ body.dark-mode .path-table tbody tr:hover td { background: #1a2734 !important; }
+ body.dark-mode .accuracy-table tbody td,
+ body.dark-mode .status-rundown-table tbody td,
+ body.dark-mode .silent-panel table tbody td,
+ body.dark-mode .path-table tbody td { border-bottom-color: #1f2a37 !important; }
+
+ /* Status colors — brighter in dark mode for contrast */
+ body.dark-mode .pc-ok-text,
+ body.dark-mode .path-table .pc-status.pc-ok,
+ body.dark-mode .path-table .pc-current.pc-ok,
+ body.dark-mode .station-row .timing .up,
+ body.dark-mode .path-table .pc-dur .dur-wan {
+   color: #4ade80 !important;
+ }
+ body.dark-mode .pc-warn-text,
+ body.dark-mode .path-table .pc-status.pc-warn,
+ body.dark-mode .path-table .pc-current.pc-warn,
+ body.dark-mode .station-row .timing .dn,
+ body.dark-mode .path-table .pc-dur .dur-secondary {
+   color: #f87171 !important;
+ }
+ body.dark-mode .path-table .pc-status.pc-info,
+ body.dark-mode .path-table .pc-current.pc-info,
+ body.dark-mode .path-table .pc-dur .dur-cell {
+   color: #60a5fa !important;
+ }
+ body.dark-mode .path-table .pc-status.pc-mild {
+   color: #fbbf24 !important;
+ }
+ body.dark-mode .row1b .panel .stat .lst.dn { color: #f87171 !important; }
+
+ /* KPI value colors (orange / yellow / green tiles) — brighten */
+ body.dark-mode .row1 .kpi-value[style*="#e88c1a"] { color: #fb923c !important; }
+ body.dark-mode .row1 .kpi-value[style*="#d9c623"] { color: #fcd34d !important; }
+ body.dark-mode .row1 .kpi-value[style*="#1ec773"],
+ body.dark-mode .row1 .kpi-value[style*="#26d97f"] { color: #4ade80 !important; }
+ body.dark-mode .row1 .kpi-value[style*="#e64646"] { color: #f87171 !important; }
+
+ /* Code spans on dark — blue on translucent blue */
+ body.dark-mode code {
+   color: #93c5fd !important;
+   background: rgba(96,165,250,0.12) !important;
+   border: 1px solid rgba(96,165,250,0.15);
+ }
+ body.dark-mode .accuracy-table .acc-source code {
+   color: #93c5fd !important;
+   background: rgba(96,165,250,0.12) !important;
+ }
+
+ /* Trend arrows */
+ body.dark-mode .trend-arrow.trend-up   { color: #4ade80 !important; }
+ body.dark-mode .trend-arrow.trend-down { color: #f87171 !important; }
+ body.dark-mode .trend-arrow.trend-flat { color: var(--muted) !important; }
+ body.dark-mode .trend-arrow.trend-na   { color: var(--subtle) !important; }
+
+ /* DATA ACCURACY badges — keep transparency tints but brighten label colors */
+ body.dark-mode .quality-badge.badge-direct    { background: rgba(74,222,128,0.18) !important; color: #4ade80 !important; }
+ body.dark-mode .quality-badge.badge-inferred  { background: rgba(96,165,250,0.18) !important; color: #93c5fd !important; }
+ body.dark-mode .quality-badge.badge-estimated { background: rgba(252,211,77,0.18) !important; color: #fcd34d !important; }
+ body.dark-mode .quality-badge.badge-na        { background: rgba(184,194,212,0.15) !important; color: var(--muted) !important; }
+
+ /* NON-PROD pill in dark */
+ body.dark-mode .non-prod-pill {
+   background: #2a3343 !important; color: var(--muted) !important;
+ }
+
+ /* SILENCED banner accent stays orange but brighter */
+ body.dark-mode .silenced-banner .head { color: #fb923c !important; }
+
+ /* Status-guide row colored badges — brighten */
+ body.dark-mode .pc-status.pc-ok    { color: #4ade80 !important; }
+ body.dark-mode .pc-status.pc-info  { color: #93c5fd !important; }
+ body.dark-mode .pc-status.pc-warn  { color: #f87171 !important; }
+ body.dark-mode .pc-status.pc-mild  { color: #fcd34d !important; }
+
+ /* Top-band period text — slightly brighter for dark mode */
+ body.dark-mode .top-band .report-period { color: #f0f4f8 !important; }
+
+ /* ─── Theme toggle button (in brand bar) ─── */
+ .theme-toggle {
+   width: 36px; height: 36px;
+   display: inline-flex; align-items: center; justify-content: center;
+   background: rgba(255,255,255,0.06);
+   border: 1px solid rgba(255,255,255,0.14);
+   border-radius: 8px;
+   color: #ffffff;
+   font-size: 16px;
+   cursor: pointer;
+   transition: background 200ms ease, transform 80ms ease, border-color 200ms ease;
+   margin-left: 10px;
+ }
+ .theme-toggle:hover {
+   background: rgba(255,255,255,0.14);
+   border-color: rgba(255,255,255,0.28);
+ }
+ .theme-toggle:active { transform: scale(0.94); }
+ .theme-toggle:focus-visible {
+   outline: none;
+   box-shadow: 0 0 0 3px rgba(242,101,34,0.45);
+ }
+ .theme-toggle .icon-sun  { display: none; }
+ .theme-toggle .icon-moon { display: inline; }
+ body.dark-mode .theme-toggle .icon-sun  { display: inline; }
+ body.dark-mode .theme-toggle .icon-moon { display: none; }
+</style>
+<script>
+  (function() {
+    try {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } catch (e) { /* no-op */ }
+  })();
+</script>
+</head>
+<body>
+
+<header class="top-band">
+  <div class="brand-bar">
+    <div class="brand-logo" aria-label="Swift Navigation"><img class="brand-mark-img" src="data:image/png;base64,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" alt="Swift Navigation"/></div>
+    <div class="report-meta">
+      <span class="report-title">SKT Station Availability</span>
+      <span class="report-period">May 2026 · May 1 → May 31 · UTC · MONTHLY</span>
+    </div>
+    <span class="spacer"></span>
+    <span class="legend" title="Availability colour thresholds">
+      <span class="swatch" style="background:#26d97f"></span>&gt;99.95%
+      <span class="swatch" style="background:#15803d"></span>99.90–99.95%
+      <span class="swatch" style="background:#d4a017"></span>99.00–99.90%
+      <span class="swatch" style="background:#d97a17"></span>95–99%
+      <span class="swatch" style="background:#e63027"></span>&lt;95%
+    </span>
+    <button class="theme-toggle" id="theme-toggle" type="button"
+            title="Toggle light / dark mode" aria-label="Toggle theme">
+      <span class="icon-moon" aria-hidden="true">☾</span>
+      <span class="icon-sun" aria-hidden="true">☀</span>
+    </button>
+  </div>
+</header>
+
+<main class="content" id="main-content">
+
+<div class="overview-banner"><span class="chip">ACCOUNT</span><span class="title">SKT — single-customer view</span><span class="subtitle">20 production stations · 20 total telemetered</span></div>
+
+<div class="exec-line"><strong>SKT</strong> sustained <span class="accent-good">100.000% availability</span> across <strong>20 production stations</strong> in this window — <strong>0</strong> stations had downtime (<strong>0m</strong> total). Overall result: <strong>excellent</strong>.</div>
+
+<div class="row1">
+  <div class="panel">
+    <div class="kpi-label" title="Percentage of station-time the cellular router was reachable to NetCloud, across the entire window.">AVAILABILITY</div>
+    <div class="kpi-value" style="color:#1ec773">100.000%</div>
+    <div class="kpi-sub">20 production stations · SKT · connection availability<br/><span style="color:#a3aab5">non-production stations excluded from headline</span></div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label" title="How many production stations recorded ≥1 minute of offline time during this window.">HAD DOWNTIME</div>
+    <div class="kpi-value" style="color:#e88c1a">0 <span style="color:var(--muted);font-size:18px">/ 20</span></div>
+    <div class="kpi-sub">stations affected</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label" title="Total downtime as a percentage of the window. Always 100% minus the availability above.">DOWNTIME %</div>
+    <div class="kpi-value" style="color:#d9c623">0.000%</div>
+    <div class="kpi-sub">0m total · 100% − availability</div>
+  </div>
+  <div class="panel">
+    <div class="kpi-label" title="UTC time range the report covers, and the sampling step used to compute availability.">DATA WINDOW</div>
+    <div style="font-size:14px;font-weight:600;margin-top:10px;line-height:1.5">
+      2026-05-01 00:00 UTC<br/>→ 2026-06-01 00:00 UTC
+    </div>
+    <div class="kpi-sub" style="margin-top:10px">60s step · 31 day(s)</div>
+  </div>
+</div>
+
+<div class="row1b">
+  <div class="panel">  <div class="header">    <div class="title">Station Health</div>    <div class="tag">sar_status_connection_online</div>    <div class="total">20 stations</div>  </div>  <div class="stats">    <div class="stat">      <div class="lbl">UPTIME</div>      <div class="val" style="color:#1ec773">100.000%</div>      <div class="ct">20 / 20 stations · no downtime in window</div>      <div class="lst">SKCW0xKOR, SKDG0xKOR, SKDH0xKOR, SKDY0xKOR, SKGG0xKOR, SKGJ0xKOR, SKGS0xKOR, SKHJ0xKOR, SKHP0xKOR, SKIC0xKOR, SKJD0xKOR, SKJG0xKOR, SKJJ0xKOR, SKNH0xKOR, SKPJ0xKOR, SKSC0xKOR, SKSN0xKOR, SKSS0xKOR, SKYD0xKOR, SKYG0xKOR</div>    </div>    <div class="stat">      <div class="lbl">DOWNTIME</div>      <div class="val" style="color:#5a6470">0.000%</div>      <div class="ct">0 / 20 stations · had any downtime</div>      <div class="lst dn empty">(none — all up)</div>    </div>  </div></div>
+</div>
+
+<h2 class="icon-station">Uptime and downtime — SKT</h2><div class="section-sub">All SKT stations, sorted worst-first. See the silent-stations panel below for per-station diagnostic remarks.</div><div class="metric-block"><div class="metric-header"><div class="metric-title">SAR Connection Online</div><div class="metric-tag">sar_status_connection_online</div><div class="metric-spark"><div class="spark-tile"><div class="l">STATIONS</div><div class="v">20</div></div></div></div><div class="stations-grid"><div class="station-row"><div class="nm">SKCW0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKDG0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKDH0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKDY0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKGG0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKGJ0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKGS0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKHJ0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKHP0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKIC0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKJD0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKJG0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKJJ0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKNH0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKPJ0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKSC0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKSN0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKSS0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKYD0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div><div class="station-row"><div class="nm">SKYG0xKOR</div><div class="barwrap"><div class="bar" style="width:100.000%;background:#1ec773"></div></div><div class="pct" style="color:#1ec773">100.000%</div><div class="timing"><span class="up">up 30d 19h 52m</span><span class="dn zero">down 0m</span></div></div></div></div><div class="silent-panel">  <div class="head">    <div class="title">SILENT STATIONS</div>    <div class="count">0</div>  </div>  <div class="lst none">✓ every SAR-registered station produced GNSS observations in this window</div></div>
+
+<h2 style="margin-top:28px">DURATION OF EMERGENCY POWER · per station · time on backup battery during window</h2>
+<div class="section-sub">Each <b>event</b> = one transition from grid power → backup battery (a single grid-loss). Multiple events at the same site = multiple separate outages (or repeated grid flickers). <b>Duration</b> shown is time without grid power, not necessarily time on battery — outages longer than the UPS battery life mean the station was offline for most of that time. Sources: <code>ac_input_voltage</code> (Adel UPS · direct measurement) and <code>sar_alert_power_source_*</code> (Back-UPS Pro · event-pair reconstruction).</div>
+<div class="row1" style="margin-top:8px;grid-template-columns:repeat(3,1fr)">
+  <div class="panel">    <div class="kpi-label">AFFECTED</div>   <div class="kpi-value" style="color:#e88c1a">0 <span style="color:var(--muted);font-size:18px">/ 20</span></div>   <div style="color:#e88c1a;font-size:14px;font-weight:600;margin-top:4px">0.000%</div>   <div class="kpi-sub">No grid-loss events recorded in this window — fleet on grid power throughout</div>  </div>  <div class="panel">    <div class="kpi-label">RECOVERED</div>   <div class="kpi-value" style="color:#1ec773">0 <span style="color:var(--muted);font-size:18px">/ 0</span></div>   <div style="color:#1ec773;font-size:14px;font-weight:600;margin-top:4px">0.000% <span style="color:var(--muted);font-weight:400">of affected</span></div>    <div class="kpi-sub">—</div>  </div>  <div class="panel">    <div class="kpi-label">NOT RECOVERED</div>   <div class="kpi-value" style="color:#5a6470">0 <span style="color:var(--muted);font-size:18px">/ 0</span></div>   <div style="color:#5a6470;font-size:14px;font-weight:600;margin-top:4px">0.000% <span style="color:var(--muted);font-weight:400">of affected</span></div>    <div class="kpi-sub">—</div>  </div>
+</div>
+<div class="row1b" style="margin-top:12px">
+  <div class="panel">    <div class="header">      <div class="title">Power Infrastructure Health</div>      <div class="tag">sar_alert_power_source_backup_battery_total</div>      <div class="total">20 stations</div>    </div>    <div class="stats">      <div class="stat">        <div class="lbl">NO EVENTS</div>        <div class="val" style="color:#1ec773">50.000%</div>        <div class="ct">10 / 20 stations · stayed on grid power the whole window</div>        <div class="lst">SKDG0xKOR, SKDY0xKOR, SKGS0xKOR, SKHJ0xKOR, SKHP0xKOR, SKIC0xKOR, SKJG0xKOR, SKNH0xKOR, SKPJ0xKOR, SKSN0xKOR</div>      </div>      <div class="stat">        <div class="lbl">HAD EVENTS</div>        <div class="val" style="color:#d9c623">50.000%</div>        <div class="ct">10 / 20 stations · had ≥1 grid-loss transition (each event = one outage)</div>        <div class="lst dn">SKCW0xKOR, SKDH0xKOR, SKGG0xKOR, SKGJ0xKOR, SKJD0xKOR, SKJJ0xKOR, SKSC0xKOR, SKSS0xKOR, SKYD0xKOR, SKYG0xKOR</div>      </div>    </div>  </div>
+</div>
+<div class="silent-panel" style="border-left:3px solid #e88c1a">
+  <div class="head">    <div class="title">EMERGENCY POWER · affected sites</div>   <div class="count">10 / 20</div>  </div>
+  <table class="silent-table">    <thead><tr>      <th>STATION</th><th>SOURCE</th><th style="text-align:right">EVENTS</th>      <th>OUTAGE DURATION</th><th>TIME ON BATTERY</th><th>STATUS</th>    </tr></thead>    <tbody><tr><td class="silent-name">SKDH0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">4</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKSC0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">2</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKCW0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKJD0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">10</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKGG0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">10</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKYG0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKGJ0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKYD0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">1</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKSS0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">2</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr><tr><td class="silent-name">SKJJ0xKOR</td><td><span style="color:#d9c623">Back-UPS Pro</span></td><td style="text-align:right">4</td><td>0m <span style="color:#8a93a0;font-size:10px">(estimated)</span></td><td><span style="color:#5a6470">—</span></td><td><span style="color:#26d97f">✓ recovered</span> <span style="color:#8a93a0;font-size:10px">(brief, under measurement resolution)</span></td></tr></tbody>  </table>
+</div>
+
+
+<h2 style="margin-top:28px">PATH CONNECTIONS · station connection health</h2>
+<div class="section-sub">
+  Each row = one station. <b>Uptime</b> = how long it was reachable. <b>Downtime</b> = how long it was fully offline.
+  Sources: <code>sar_status_connection_online</code> gauge for uptime/downtime · <code>sar_alert_connection_state_*_total</code> counters for failover events.
+  Note: per-SIM detail (SIM1 vs SIM2) is not yet available — Prometheus does not distinguish slot. Cellular session durations (used internally for classification) are estimated by event timing.
+</div>
+
+<div class="path-kpis path-kpis-6"><div class="path-kpi"><div class="lbl">AVAILABILITY</div><div class="val pc-ok-text">99.444%</div><div class="pct">fleet uptime · any path</div></div><div class="path-kpi"><div class="lbl">MAX UPTIME</div><div class="val pc-ok-text">30d 19h 52m</div><div class="pct">SKCW0xKOR · healthiest</div></div><div class="path-kpi"><div class="lbl">MIN UPTIME</div><div class="val pc-warn-text">30d 19h 52m</div><div class="pct">SKCW0xKOR · worst</div></div><div class="path-kpi"><div class="lbl">AVG DOWNTIME</div><div class="val pc-ok-text">0m</div><div class="pct">no downtime recorded</div></div><div class="path-kpi"><div class="lbl">STABLE STATIONS</div><div class="val pc-ok-text">17<span class="of"> / 20</span></div><div class="pct">no events at all</div></div><div class="path-kpi"><div class="lbl">STATIONS WITH DOWNTIME</div><div class="val pc-ok-text">0<span class="of"> / 20</span></div><div class="pct">fleet healthy — no offline time</div></div></div>
+
+<div class="trend-legend">
+  <span class="trend-legend-title">UPTIME TREND vs same day last week:</span>
+  <span class="trend-legend-item"><span class="trend-arrow trend-up">▲</span> better</span>
+  <span class="trend-legend-item"><span class="trend-arrow trend-down">▼</span> worse</span>
+  <span class="trend-legend-item"><span class="trend-arrow trend-flat">·</span> unchanged</span>
+  <span class="trend-legend-item"><span class="trend-arrow trend-na">—</span> no baseline</span>
+</div>
+
+<table class="path-table path-table-single">
+  <thead><tr><th>STATION</th><th>STATUS</th><th>UPTIME <span class="th-hint">(bar · duration · trend)</span></th><th>DOWNTIME</th><th>PRIMARY <span class="th-hint">(WAN)</span></th><th>SECONDARY <span class="th-hint">(cellular · est)</span></th><th>CURRENT</th></tr></thead>
+  <tbody><tr><td class="pc-name">SKCW0xKOR</td><td class="pc-status pc-info">brief failover</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 22m</span></td><td class="pc-dur"><span class="dur-cell">30m <span class="dur-sub">est</span></span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKDH0xKOR</td><td class="pc-status pc-info">brief failover</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 22m</span></td><td class="pc-dur"><span class="dur-cell">30m <span class="dur-sub">est</span></span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKYG0xKOR</td><td class="pc-status pc-info">brief failover</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 22m</span></td><td class="pc-dur"><span class="dur-cell">30m <span class="dur-sub">est</span></span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKDG0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKDY0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKGG0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKGJ0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKGS0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKHJ0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKHP0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKIC0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKJD0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKJG0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKJJ0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKNH0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKPJ0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKSC0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKSN0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKSS0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr><tr><td class="pc-name">SKYD0xKOR</td><td class="pc-status pc-ok">stable</td><td class="pc-uptime-cell">  <div class="inline-bar"><div class="inline-bar-fill" style="width:100.0%;background:#1ec773"></div></div>  <span class="dur-primary">30d 19h 52m</span>  <span class="trend-arrow trend-na" title="no baseline data from last week">—</span></td><td class="pc-dur"><span class="dur-secondary">0s</span></td><td class="pc-dur"><span class="dur-wan">30d 19h 52m</span></td><td class="pc-dur"><span class="dur-cell">0s</span></td><td class="pc-current pc-ok">WAN</td></tr></tbody>
+</table>
+
+<div class="accuracy-panel"><div class="status-rundown-title">DATA ACCURACY</div><table class="accuracy-table"><thead><tr><th>Column</th><th>Source</th><th>Confidence</th><th>Notes</th></tr></thead><tbody><tr><td class="acc-metric">Uptime / Downtime</td><td class="acc-source"><code>sar_status_connection_online gauge · 60s step</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Measured. Resolution ±60s per state transition.</td></tr><tr><td class="acc-metric">Failover events (mdm / online / offline)</td><td class="acc-source"><code>sar_alert_connection_state_*_total counters</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Counter increments emitted by NetCloud on state-change alerts.</td></tr><tr><td class="acc-metric">Primary (WAN) duration</td><td class="acc-source"><code>= uptime − cellular duration</code></td><td class="acc-level"><span class="quality-badge badge-inferred">↔ INFERRED</span></td><td class="acc-notes">Derived from #1 and #4. Accuracy bounded by #4.</td></tr><tr><td class="acc-metric">Secondary (Cellular) duration</td><td class="acc-source"><code>per-mdm event session timing, capped at 4h</code></td><td class="acc-level"><span class="quality-badge badge-estimated">≈ ESTIMATED</span></td><td class="acc-notes">Best-effort: each mdm event timed to the next online/offline event. Sessions longer than 4h are capped (NetCloud rarely reports continuous sessions).</td></tr><tr><td class="acc-metric">Current connection (WAN / Cellular / Offline)</td><td class="acc-source"><code>instant gauge + last-2h event window</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">WAN/Offline are gauge-direct. Cellular detection is inferred: online now + mdm event in last 2h + more mdm than online events.</td></tr><tr><td class="acc-metric">Trend arrow (▲▼·)</td><td class="acc-source"><code>comparison vs same weekday last week (T-7)</code></td><td class="acc-level"><span class="quality-badge badge-direct">✓ DIRECT</span></td><td class="acc-notes">Same gauge over same hour-of-week window.</td></tr><tr><td class="acc-metric">Per-SIM split (SIM1 vs SIM2)</td><td class="acc-source"><code>not exposed by Prometheus</code></td><td class="acc-level"><span class="quality-badge badge-na">✗ UNAVAILABLE</span></td><td class="acc-notes">Requires a swift-nav/sar PR to surface per-slot metrics. Not in this report.</td></tr></tbody></table><div class="acc-legend"><div class="acc-legend-title">CONFIDENCE LABELS</div><div class="acc-legend-grid"><div class="acc-legend-item"><span class="quality-badge badge-direct">✓ DIRECT</span><span class="acc-legend-desc">Observed. Read straight from a Prometheus gauge or counter at query time. Highest trust.</span></div><div class="acc-legend-item"><span class="quality-badge badge-inferred">↔ INFERRED</span><span class="acc-legend-desc">Deduced. Derived via fixed logic from other DIRECT measurements (e.g. primary = uptime − cellular). Logically correct if its inputs are — trace the source chain to gauge trust.</span></div><div class="acc-legend-item"><span class="quality-badge badge-estimated">≈ ESTIMATED</span><span class="acc-legend-desc">Approximated. Numeric best-effort when no direct metric exists (e.g. cellular session = mdm event → next event, capped at 4 h). Carries an unknown error margin.</span></div><div class="acc-legend-item"><span class="quality-badge badge-na">✗ UNAVAILABLE</span><span class="acc-legend-desc">Not exposed by any data source we can read. Requires upstream work (SAR PR, NetCloud API) before we can surface it.</span></div></div></div></div><div class="status-rundown"><div class="status-rundown-title">STATUS GUIDE</div><table class="status-rundown-table"><thead><tr><th>Status</th><th>What it means</th><th>Count</th></tr></thead><tbody><tr><td><span class="pc-status pc-ok">stable</span></td><td class="rundown-desc">No problems. Station stayed on its main connection the whole time.</td><td class="rundown-count">17</td></tr><tr><td><span class="pc-status pc-mild">outage, no failover</span></td><td class="rundown-desc">Went offline but cellular backup didn't kick in. Worth checking.</td><td class="rundown-count">—</td></tr><tr><td><span class="pc-status pc-info">brief failover</span></td><td class="rundown-desc">Switched to cellular a few times (1–4). Wired connection had small blips.</td><td class="rundown-count">3</td></tr><tr><td><span class="pc-status pc-info">FLAPPING</span></td><td class="rundown-desc">Switched to cellular many times and recovered each time (5+). Wired is unstable.</td><td class="rundown-count">—</td></tr><tr><td><span class="pc-status pc-warn">STUCK / degraded</span></td><td class="rundown-desc">Switched to cellular but didn't come back cleanly. Station is degraded.</td><td class="rundown-count">—</td></tr><tr><td><span class="pc-status pc-warn">ON CELLULAR</span></td><td class="rundown-desc">Probably running on cellular backup right now (best guess).</td><td class="rundown-count">—</td></tr><tr><td><span class="pc-status pc-warn">OFFLINE (entire window)</span></td><td class="rundown-desc">Station was unreachable the entire window. Likely decommissioned or hardware failure.</td><td class="rundown-count">—</td></tr></tbody></table></div>
+
+
+</main>
+
+<footer class="footer-band">
+  <div class="footer-inner">
+    <span class="footer-brand"><img src="data:image/png;base64,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" alt="Swift Navigation"/></span>
+    <span class="spacer"></span>
+    <span>Generated 2026-06-25 18:29 UTC · Source <code>sar_status_connection_online</code> + <code>edge_sitetracker_site_status{customer=&quot;SKT&quot;}</code> · production filter <code>noc_status==1</code> · per-account hybrid cache active</span>
+  </div>
+</footer>
+
+<script>
+    (function() {
+      'use strict';
+      var HEADER_REWRITES = {
+        'DURATION OF EMERGENCY POWER · per station · time on backup battery during window':
+          'Emergency power — time on backup battery, per station',
+        'EMERGENCY POWER · affected sites': 'Emergency power · affected sites',
+        'PATH CONNECTIONS · station connection health':
+          'Path connections — station connection health',
+        'UPTIME AND DOWNTIME OF STATIONS': 'Uptime and downtime of stations',
+        'SAR Connection Online':  'Connectivity Status',
+        'SAR Connection Online ': 'Connectivity Status',
+        'SILENT STATIONS': 'Silent stations',
+        'NON-PRODUCTION': 'Non-production',
+        'SILENCED': 'Silenced',
+        'AVAILABILITY': 'Availability', 'HAD DOWNTIME': 'Had downtime',
+        'DOWNTIME %': 'Downtime %', 'DATA WINDOW': 'Data window',
+        'MAX UPTIME': 'Max uptime', 'MIN UPTIME': 'Min uptime',
+        'AVG DOWNTIME': 'Avg downtime',
+        'STABLE STATIONS': 'Stable stations',
+        'STATIONS WITH DOWNTIME': 'Stations with downtime',
+        'AFFECTED': 'Affected', 'RECOVERED': 'Recovered',
+        'NOT RECOVERED': 'Not recovered',
+        'NO EVENTS': 'No events', 'HAD EVENTS': 'Had events',
+        'UPTIME': 'Uptime', 'DOWNTIME': 'Downtime', 'STATIONS': 'Stations',
+        'STATUS GUIDE': 'Status guide', 'DATA ACCURACY': 'Data accuracy',
+        'CONFIDENCE LABELS': 'Confidence labels',
+      };
+      function rewriteHeaders() {
+        var sel = 'h1, h2, h3, .kpi-label, .lbl, .status-rundown-title, .metric-title, .row1b .panel .header .title, .metric-block .meta .title';
+        document.querySelectorAll(sel).forEach(function(el) {
+          var raw = el.textContent.trim();
+          if (HEADER_REWRITES[raw]) el.textContent = HEADER_REWRITES[raw];
+        });
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        rewriteHeaders();
+        document.body.classList.add('dark-mode');
+        var toggle = document.getElementById('theme-toggle');
+        if (toggle) {
+          toggle.addEventListener('click', function() {
+            var isDark = document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('dark-mode', !isDark);
+            document.body.classList.toggle('light-mode', isDark);
+          });
+        }
+        document.documentElement.style.scrollBehavior = 'smooth';
+      });
+    })();
+    </script>
+</body>
+</html>
