@@ -1,9 +1,338 @@
-<!doctype html>
-<html><head>
-<meta charset="utf-8"/>
-<title>Partner Station Availability</title>
-<meta http-equiv="refresh" content="0; url=latest.html"/>
-<style>body{font-family:sans-serif;color:#aaa;background:#111;padding:30px}</style>
-</head><body>
-Redirecting to <a href="latest.html">latest report</a>.
-</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Station Availability Reports — Swift Navigation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg:          #0a0e15;
+    --panel:       #14202e;
+    --panel-hover: #1a2734;
+    --border:      #2a3343;
+    --text:        #f0f4f8;
+    --muted:       #b8c2d4;
+    --subtle:      #8a93a0;
+    --swift-orange:#f26522;
+    --swift-red:   #e63027;
+    --swift-navy:  #1a2332;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+    line-height: 1.55;
+  }
+  .top-band {
+    background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%);
+    padding: 32px 40px;
+    border-bottom: 4px solid var(--swift-orange);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .top-band .inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+  .brand-mark svg {
+    width: 50px;
+    height: 42px;
+  }
+  .brand-mark .wordmark {
+    color: #fff;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    margin-left: 8px;
+  }
+  .brand-mark .nav-tag {
+    color: #b8c2d4;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.2);
+    text-transform: uppercase;
+  }
+  .top-band .title-block {
+    margin-left: 12px;
+    padding-left: 22px;
+    border-left: 1px solid rgba(255,255,255,0.18);
+  }
+  .top-band h1 {
+    color: #fff;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  .top-band .subtitle {
+    color: #c5cfde;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 5px;
+  }
+  main {
+    max-width: 1400px;
+    margin: 32px auto;
+    padding: 0 40px 60px;
+  }
+  section {
+    margin-bottom: 40px;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin-bottom: 18px;
+  }
+  .featured-card {
+    display: block;
+    background: linear-gradient(135deg, #1a2332 0%, #14202e 100%);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--swift-orange);
+    border-radius: 14px;
+    padding: 24px 28px;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .featured-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--swift-orange);
+    box-shadow: 0 6px 24px rgba(242,101,34,0.18);
+  }
+  .featured-card .chip {
+    display: inline-block;
+    background: rgba(242,101,34,0.16);
+    color: #fb923c;
+    border: 1px solid rgba(242,101,34,0.4);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .featured-card h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .featured-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .card {
+    display: block;
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: var(--text);
+    transition: background 160ms ease, border-color 160ms ease, transform 100ms ease;
+  }
+  .card:hover {
+    background: var(--panel-hover);
+    border-color: var(--swift-orange);
+    transform: translateY(-1px);
+  }
+  .card .name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .card .meta {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .card .meta strong { color: var(--text); font-weight: 600; }
+  .card .badges {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.08);
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .badge:hover { background: rgba(255,255,255,0.10); color: var(--text); }
+  .notes {
+    background: rgba(184,194,212,0.06);
+    border-left: 3px solid var(--subtle);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 22px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.6;
+  }
+  .notes strong { color: var(--text); font-style: normal; }
+  .notes code {
+    background: rgba(96,165,250,0.12);
+    color: #93c5fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-style: normal;
+  }
+  footer.foot {
+    background: linear-gradient(135deg, #050810 0%, #0e1622 60%, #1a2332 100%);
+    color: #b8c2d4;
+    padding: 22px 40px;
+    border-top: 4px solid var(--swift-orange);
+    text-align: center;
+    font-size: 12px;
+    margin-top: 40px;
+  }
+  footer.foot code {
+    background: rgba(255,255,255,0.08);
+    color: #d4dae6;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+
+<header class="top-band">
+  <div class="inner">
+    <div class="brand-mark" aria-label="Swift Navigation">
+      <svg viewBox="0 0 50 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 4 16 Q 14 4 26 9 L 30 18 Q 20 14 4 16 Z" fill="#f26522"/>
+        <path d="M 4 22 Q 22 17 42 28 L 36 37 Q 22 30 4 22 Z" fill="#e63027"/>
+      </svg>
+      <span class="wordmark">swift</span>
+      <span class="nav-tag">Navigation</span>
+    </div>
+    <div class="title-block">
+      <h1>Station Availability Reports</h1>
+      <div class="subtitle">Partner-facing monthly · daily · weekly availability reporting · NetCloud + Adel UPS telemetry</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>All-Accounts Overview</h2>
+  <div class="section-sub">Fleet-wide rollup across all 10 customers with a per-account dropdown drill-down inside.</div>
+  <a class="featured-card" href="allaccount/stationavailability_allaccount_monthly_202605.html">
+    <span class="chip">May 2026 · Monthly</span>
+    <h3>All Accounts — Fleet Availability</h3>
+    <p>946 sites across 10 customers · 697 stable / 782 production = 89% stable fleet · Overview KPIs + native dropdown for per-customer drill-down.</p>
+  </a>
+</section>
+
+<section>
+  <h2>Per-Account Reports — May 2026 Monthly</h2>
+  <div class="section-sub">Single-customer reports. Each card opens the latest May 2026 view. Sortable by fleet size (largest first).</div>
+  <div class="grid">
+
+    <a class="card" href="peraccount/Swift/stationavailability_SWIFT_monthly_202605.html">
+      <div class="name">Swift</div>
+      <div class="meta"><strong>463 sites</strong> · 49 countries · USA-dominated</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/DFMG/stationavailability_DFMG_monthly_202605.html">
+      <div class="name">DFMG</div>
+      <div class="meta"><strong>262 sites</strong> · 22 EU countries · DT/FR/ES/IT dominant</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/Telus/stationavailability_TELUS_monthly_202605.html">
+      <div class="name">Telus</div>
+      <div class="meta"><strong>73 sites</strong> · CAN-dominant</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/KDDI/stationavailability_KDDI_monthly_202605.html">
+      <div class="name">KDDI</div>
+      <div class="meta"><strong>72 sites</strong> · Japan</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/KT/stationavailability_KT_monthly_202605.html">
+      <div class="name">KT</div>
+      <div class="meta"><strong>20 sites</strong> · Korea</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/SKT/stationavailability_SKT_monthly_202605.html">
+      <div class="name">SKT</div>
+      <div class="meta"><strong>20 sites</strong> · Korea · 85% fully stable</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+    <a class="card" href="peraccount/TaiwanMobile/stationavailability_TAIWANMOBILE_monthly_202605.html">
+      <div class="name">TaiwanMobile</div>
+      <div class="meta"><strong>19 sites</strong> · Taiwan</div>
+      <div class="badges"><span class="badge">HTML</span><span class="badge">PNG</span><span class="badge">CSV</span></div>
+    </a>
+
+  </div>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <div class="notes">
+    Three accounts intentionally absent from the per-account view above:
+    <strong>Singtel</strong> (4 sites), <strong>Etisalat</strong> (10 sites),
+    and <strong>Airtel</strong> (6 sites) — all flagged
+    <code>noc_status != "1"</code> in sitetracker for May 2026 (decommissioned, pending, or degraded).
+    They appear inside the <strong>All-Accounts</strong> report as <strong>DATA QUALITY</strong>
+    advisory cards instead of empty reports. See the operator log if you need
+    the specific sites and their <code>noc_status</code> codes.
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  Generated 2026-06-27 UTC · Production scripts: <code>stationavailability_peraccount.py</code> + <code>stationavailability_allaccount.py</code> · Source <code>sar_status_connection_online</code> + <code>edge_sitetracker_site_status</code> · See <a href="README.md" style="color:#fb923c;text-decoration:underline">README.md</a> for the full project documentation.
+</footer>
+
+</body>
+</html>
