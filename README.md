@@ -18,17 +18,19 @@ root (the `BASE_DIR` walk-up in `station_availability.py` handles this).
 
 | Script | Scope | What it covers |
 |---|---|---|
-| **`scripts/dfmg_sar_availability.py`** | DFMG only · SAR metric only | Production. Scheduled (daily/weekly/monthly + drain-queue plists). Hybrid cache. Swift-branded dark/light report. |
-| **`scripts/regions_stationavailability.py`** | All partners · grouped by region | NA / EU / AP rollup with dropdown selector + "All Regions - Overview" aggregate. Same feature set as DFMG (Path Connections, Emergency Power, DATA ACCURACY, hybrid cache). Not yet scheduled. |
+| **`scripts/stationavailability_peraccount.py`** | Any one customer · SAR + path + power | **Production (V3.1).** Generates a single-customer report. CLI `--account <NAME>` with `--list-accounts` for the live roster. Default = dry-run; opt-in to publish via `--publish` + `--post-slack`. Includes V3.3 partner-feedback features (non-prod removal, stratified path table, sign-aware text restate). |
+| **`scripts/stationavailability_allaccount.py`** | All 10 customers · one report | **Production (V3.1).** Overview rollup + native `<select>` dropdown for per-account drill-down. Same V3.3 partner-feedback features. Reads per-account caches written by peraccount. |
+| **`scripts/dfmg_sar_availability.py`** | DFMG only · SAR metric only | Original DFMG production. Scheduled (daily/weekly/monthly + drain-queue plists). Hybrid cache. Now shares the V3.3 renderer improvements with the new account scripts via `render_path_connection_section`. |
+| **`scripts/regions_stationavailability.py`** | All partners · grouped by region | NA / EU / AP rollup with dropdown selector + "All Regions - Overview" aggregate. Predecessor to the V3.0 account-dimension reports — kept for the regional-cut view. |
 | `scripts/station_availability.py` | All partners · multi-region | Shared plumbing module (fetch / push / Slack / logo / cluster-failover). Imported by every other script. |
 | `scripts/BETA_TESTING.py` | DFMG experiments | Permanent BETA twin of `dfmg_sar_availability.py`. Outputs use `BETA_` prefix so production reports aren't overwritten. |
 | `scripts/BETA_TESTING_regions.py` | Regional experiments | Permanent BETA twin of `regions_stationavailability.py`. Same `BETA_` prefix isolation. |
+| `scripts/BETA_TESTING_per_account.py` | Per-account experiments | **V3.0 BETA twin** of `stationavailability_peraccount.py`. Same isolation pattern. |
+| `scripts/BETA_TESTING_all_accounts.py` | All-account experiments | **V3.0 BETA twin** of `stationavailability_allaccount.py`. Same isolation pattern. |
 | `scripts/dfmg_availability.py` | DFMG only · 3-metric variant (SAR + DCUPS + Orion) | Deprecated. Logs a `[DEPRECATED]` warning on startup. Not scheduled. Kept for reference. |
 | `scripts/station_check.py` | Per-station ad-hoc CLI diagnostic | Interactive; not a periodic report. |
 
-> Every change to "the report" defaults to `scripts/dfmg_sar_availability.py`
-> (production) and `scripts/regions_stationavailability.py` (regional). BETA
-> twins exist for experimental work — production stays untouched.
+> **Default targets:** for **partner-facing** changes, edit `scripts/stationavailability_peraccount.py` + `scripts/stationavailability_allaccount.py` (V3.1 production). For the legacy DFMG-only path, edit `scripts/dfmg_sar_availability.py`. BETA twins exist for experimental work; production stays untouched.
 
 ---
 
@@ -711,6 +713,129 @@ Per-region tabs (NA / EU / AP) keep the full detail.
 
 ---
 
+## Account-dimension reports (V3.0 → V3.3, shipped 2026-06-25/26/27)
+
+Successor to the regional report. Where the regional cut groups stations into NA / EU / AP buckets, the **account-dimension** cut groups them by **customer** — exactly matching how partners and Customer Success think about the fleet.
+
+### Authoritative customer roster (live as of 2026-06-25)
+
+Pulled from `count by (customer) (last_over_time(edge_sitetracker_site_status[30d]))` at run time:
+
+| Customer | Unique sites | Country footprint |
+|---|---:|---|
+| Swift | 463 | 49 countries (USA-dominated) |
+| DFMG | 262 | 22 EU countries |
+| Telus | 73 | CAN=72, USA=1 |
+| KDDI | 72 | JPN |
+| KT / SKT | 20 each | KOR |
+| TaiwanMobile | 19 | TWN |
+| Etisalat | 10 | ARE |
+| Airtel | 6 | IND |
+| Singtel | 4 | SGP |
+| **TOTAL** | **949** | **10 customers** |
+
+The order is **fleet-size descending** — drives both the dropdown order and how accounts iterate during runs.
+
+### V3.0 — BETA scaffolds (2026-06-25)
+
+Two new BETA scripts built and smoke-tested:
+- `BETA_TESTING_per_account.py` — single-customer report
+- `BETA_TESTING_all_accounts.py` — Overview button + native `<select>` dropdown across all customers
+
+Decisions locked at brainstorm time:
+- Dropdown rows show **customer name only** (no site count clutter)
+- Order is **fleet size descending**
+- Small partners listed **individually**, not bucketed
+- **Simple native `<select>`** dropdown (not custom combobox) — free accessibility + keyboard nav
+- For accounts with 100% non-prod sites (Etisalat, Airtel currently): render an amber "DATA QUALITY" advisory card instead of fake KPIs
+
+### V3.1 — Production promotion (2026-06-25)
+
+Promoted to:
+- `scripts/stationavailability_peraccount.py` (706 lines)
+- `scripts/stationavailability_allaccount.py` (614 lines)
+
+Key production-vs-BETA differences:
+- **Default is dry-run** (inverted from `dfmg_sar_availability.py`). Pass `--publish` to upload to Pages and `--post-slack` to post Slack — both opt-in until accounts are vetted externally.
+- **Per-invocation log file** alongside each output (`stationavailability_<ACCOUNT>_<period>.log`) — every line still mirrors to the shared `station_availability.log` for monitor.sh continuity.
+- **CSV export** added (`write_sar_csv` shared with prod DFMG; allaccount writes a consolidated CSV with an `account` column for filter/pivot in Excel).
+- **Caches shared with BETA** (`account_<CUSTOMER>` CACHE_PARTNER) — no duplicate Thanos fetches.
+
+### V3.2 — First live monthly publish (2026-06-25)
+
+8 monthly reports for May 2026 landed in `#testing-scripts`. Surprises captured for follow-up:
+- Singtel monthly aborts with exit 2 — sitetracker shows all 4 Singtel sites as non-prod in May 2026 even though they're prod in June. `noc_status` is **time-varying**; daily reports filter against today's sitetracker, monthly filters against end-of-month's. A station can flip prod↔non-prod between months without any code change.
+- GitHub API timeout wedge: 2-hour Pages-API outage on 2026-06-25 caused per-account publish to spin for ~30 min/account on retries before giving up. `_gh_put` has 3× retries at 60 s timeout — worth tightening for next-blip resilience.
+
+### V3.3 — DFMG partner-feedback features (2026-06-26)
+
+Triggered by DFMG (Thierry) feedback after they reviewed the May 2026 report:
+
+1. **Non-prod sites removed from rendered sections.** The orange "NON-PRODUCTION" banner section is gone for partner-facing reports. Excluded site list goes to:
+   - `station_availability.log` (each line tagged `[NON-PROD-EXCLUDED]` with site / name / country)
+   - A side CSV `stationavailability_<ACCOUNT>_<period>_excluded.csv` (audit-only, not pushed to Pages)
+   - A subtle italic footer note inside the HTML: *"N decommissioned or non-production site(s) excluded from this report. Full list available in the operator log."*
+   - A Slack post addendum: `:wastebasket: N decommissioned sites excluded — see operator log.`
+   - Silenced **production** stations stay visible (real ops signal, not decommissioned noise).
+
+2. **Path Connection table stratified.** "0s and 0s" rows (`down_s == 0 AND cellular_uptime_s == 0`) are hidden behind a green ✓ NO IMPACT summary card:
+   ```
+   ┌─[ ✓ NO IMPACT ] N stations with no measurable downtime or cellular usage ──┐
+   │ Primary path served traffic the entire window.                              │
+   │ ▸ Show all N no-impact station(s)                                           │
+   └─────────────────────────────────────────────────────────────────────────────┘
+   ```
+   The collapsible toggle reveals the full hidden table for anyone who wants to verify nothing's hidden. Main table now only shows stations with actual events to investigate.
+
+3. **Sign-aware text restate.** Literal `0s` replaced with semantic text that carries the news:
+   - `DOWNTIME = 0` → "no downtime" (green) — good news
+   - `PRIMARY = 0` → "offline entire window" (red) — bad news, station never came online via wired
+   - `SECONDARY = 0` when `PRIMARY > 0` → "primary only" (muted green) — wired path held
+   - `SECONDARY = 0` when `PRIMARY = 0` → em-dash (avoids the "primary only" lie for offline-entire-window stations)
+
+4. **Root-cause fix for the 400 Bad Request errors** that had quietly truncated path-connection event data on the first May 2026 publish. The fix wasn't URL length (which was the initial suspicion) — it was Thanos' 11 000-point-per-series cap being violated by a monthly window × 60 s step query. Solution: every range-query fetcher now uses `_autotune_step(start, end)` to pick a step that fits under the cap. Also switched the same fetchers GET→POST as defensive prophylaxis against future URL-bloat regressions. Affected fetchers:
+   - `fetch_path_raw_events` (path connection alert counters)
+   - `fetch_raw_alert_events` (Back-UPS Pro power-source counters)
+   - `_estimate_backup_pro_durations` (counter-pair reconstruction)
+
+### File-naming convention (V3.1 production)
+
+```
+output/peraccount/stationavailability_<ACCOUNT>_<period>.{html,png,csv,log}
+output/peraccount/stationavailability_<ACCOUNT>_<period>_excluded.csv      (V3.3 side file)
+output/allaccount/stationavailability_allaccount_<period>.{html,png,csv,log}
+```
+
+Examples:
+- `stationavailability_DFMG_monthly_202605.html`
+- `stationavailability_SWIFT_daily_20260624.csv`
+- `stationavailability_allaccount_monthly_202605.png`
+
+ACCOUNT is uppercased in filenames. Period suffix is always present so daily / weekly / monthly outputs never collide on disk.
+
+### Caches
+
+- BETA + V3.1 production share `cache/sar_daily_account_<CUSTOMER>_<date>.json` (no duplicate Thanos fetches between them).
+- All-accounts union uses `account_PROD_ALL` to stay distinct.
+
+### Smoke-test invocations
+
+```bash
+# List accounts (live roster)
+python3 scripts/stationavailability_peraccount.py --list-accounts
+
+# Single account (dry-run by default)
+python3 scripts/stationavailability_peraccount.py --account DFMG --mode daily --date 2026-06-24
+
+# Single account, live publish
+python3 scripts/stationavailability_peraccount.py --account DFMG --mode monthly --date 2026-05 --publish --post-slack
+
+# All accounts (dry-run by default)
+python3 scripts/stationavailability_allaccount.py --mode monthly --date 2026-05
+```
+
+---
+
 ## Light / dark theme + Swift Navigation branding (2026-06-21)
 
 Both `dfmg_sar_availability.py` and `regions_stationavailability.py` now ship
@@ -916,7 +1041,13 @@ dedicated SAR Grafana instance — not in our edge Thanos — so we can't piggyb
 | **Swift Navigation light theme** (2026-06-21) | Light theme with Swift brand colors (orange `#f26522`, red `#e63027`, navy `#1a2332`). Dark navy header band with embedded real PNG logo (58 px) + report title (24 px / weight 800). Sentence-case headers via JS rewrite. Partner-friendly metric renames (Station Health, Connectivity Status). Methodology banner dropped from display. |
 | **Dark mode + toggle** (2026-06-21) | Sun/moon toggle button in brand bar. Dark default = page bg `#0a0e15`, cards `#14202e`, text `#f0f4f8`. Brightened status colors for dark-bg contrast (green `#4ade80`, red `#f87171`, blue `#60a5fa`, yellow `#fcd34d`). Pre-`<body>` inline script prevents flash-of-wrong-theme. Hard-defaulted to dark on every page load — `localStorage` not used, so partners see consistent default. Toggle is session-only. Applied to both DFMG and regional scripts. |
 | **Pure-black + extra-bold light mode** (2026-06-21) | After multiple iterations of "still too light" feedback: ALL light-mode text forced to `#000000` with weights 700-900 (was `#0a0e15` at 500-700). Three-layer CSS specificity insurance (`body.light-mode`, `body:not(.dark-mode)`, direct selectors) guarantees rules win cascade. WCAG AAA verified (21:1 contrast on white). |
+| **V3.0 — Account-dimension BETAs** (2026-06-25) | `BETA_TESTING_per_account.py` + `BETA_TESTING_all_accounts.py` shipped. Customer-pivoted reports (10 customers / 949 sites) with Overview rollup + native `<select>` dropdown. Caches shared with later V3.1 production. Decisions locked: simple native dropdown, fleet-size-desc order, customer name only. |
+| **V3.1 — Account-dimension production** (2026-06-25) | Promoted to `stationavailability_peraccount.py` (706 lines) + `stationavailability_allaccount.py` (614 lines). Default = dry-run; opt-in to publish via `--publish` + `--post-slack`. Per-invocation log file alongside HTML/PNG/CSV. File naming `stationavailability_<ACCOUNT>_<period>.{html,png,csv,log}`. |
+| **V3.2 — First live monthly publish** (2026-06-25) | 8 May 2026 monthly reports posted to `#testing-scripts`. Two surprises captured: (1) Singtel monthly aborts because `noc_status` was non-prod in May but prod in June (sitetracker is time-varying), (2) GitHub Pages-API outage 15:40–17:30 UTC wedged retries for ~30 min/account — recovery: kill + verify + retry from warm cache (~5 min/account). |
+| **V3.3 — DFMG partner feedback features** (2026-06-26) | Driven by Thierry's review of the May 2026 report: (a) decommissioned/non-prod sites removed from rendered sections, full list in `_excluded.csv` + Slack `:wastebasket:` line + footer note; (b) path-connection table stratified — "0s and 0s" rows hidden behind a green ✓ NO IMPACT card with collapsible "Show all" reveal; (c) sign-aware text restate — `0s` becomes "no downtime" (green), "offline entire window" (red), or "primary only" (muted green) with edge-case conditional for offline-entire-window stations. |
+| **`_autotune_step` lesson** (2026-06-26) | Yesterday's `400 Bad Request` on `sar_alert_connection_state_*` queries during the May 2026 allaccount publish was misdiagnosed as URL-length overflow. Real cause: Thanos rejects range queries above 11 000 points/series. Monthly window × 60 s step = 44 640 points → fails. Fix: every range-query fetcher (`fetch_path_raw_events`, `fetch_raw_alert_events`, `_estimate_backup_pro_durations`) now uses `_autotune_step(start, end)`. Same fetchers also switched GET→POST as defensive prophylaxis against future URL bloat. |
+| **DFMG May 2026 republished with all V3.3 changes** (2026-06-27) | Full 8-account + allaccount publish. Restate counts (per DFMG report): 167 "no downtime" cells, 107 "primary only", 21 "offline entire window". All-accounts overview shows 697 stable / 782 production = 89% stratified by the green NO IMPACT card — fleet-wide stability headline lands first, the 85 actionable stations follow. |
 
 ---
 
-_Last reviewed: 2026-06-21 · Regional report shipped · Light/dark themes with Swift branding · Sentence-case headers · Hard-dark default · Pure-black light mode · Scripts in `scripts/` subfolder · schema v2 · cluster-failover-resilient · T-1 auto-regen on_
+_Last reviewed: 2026-06-27 · V3.3 partner-feedback shipped (non-prod removal · stratified path table · sign-aware restate · autotune_step fix) · V3.1 account-dimension production (`stationavailability_peraccount.py` + `stationavailability_allaccount.py`) live with dry-run default · 10 customers / 949 sites authoritative roster · Regional + DFMG legacy production still active · Light/dark themes with Swift branding · Sentence-case headers · Hard-dark default · Pure-black light mode · Scripts in `scripts/` subfolder · schema v2 · cluster-failover-resilient · T-1 auto-regen on_
