@@ -27,7 +27,9 @@ root (the `BASE_DIR` walk-up in `station_availability.py` handles this).
 | `scripts/BETA_TESTING_regions.py` | Regional experiments | Permanent BETA twin of `regions_stationavailability.py`. Same `BETA_` prefix isolation. |
 | `scripts/BETA_TESTING_per_account.py` | Per-account experiments | **V3.0 BETA twin** of `stationavailability_peraccount.py`. Same isolation pattern. |
 | `scripts/BETA_TESTING_all_accounts.py` | All-account experiments | **V3.0 BETA twin** of `stationavailability_allaccount.py`. Same isolation pattern. |
-| `scripts/dfmg_availability.py` | DFMG only · 3-metric variant (SAR + DCUPS + Orion) | Deprecated. Logs a `[DEPRECATED]` warning on startup. Not scheduled. Kept for reference. |
+| `scripts/BETA_gcim_helper.py` | Jira GCIM fetcher + section renderer | **V3.4 (2026-06-27).** Single source of truth for the GCIM ticket-history section. Imported by both `stationavailability_peraccount.py` and `stationavailability_allaccount.py`. Auth via `JIRA_USER_EMAIL` + `JIRA_API_TOKEN` env vars. See [GCIM Ticket History integration](#gcim-ticket-history-integration-v34-shipped-2026-06-27). |
+| `scripts/BETA_TESTING_gcim_render.py` | GCIM section visual sandbox | Mock-data harness for layout iteration without live Jira. Produces `BETA_dfmg_gcim_mock.{html,png}` under `output/accounts/`. |
+| `scripts/dfmg_availability.py` | DFMG only · 3-metric variant (SAR + DCUPS + Orion) | Deprecated. Logs a `[DEPRECATED]` warning on startup. Not scheduled. Kept for reference. **One live edit (2026-06-27):** `render_station_row` gained an optional `gcim_info=None` kwarg consumed by the GCIM-augmented station rows. Backward-compatible — default None = original behaviour. |
 | `scripts/station_check.py` | Per-station ad-hoc CLI diagnostic | Interactive; not a periodic report. |
 
 > **Default targets:** for **partner-facing** changes, edit `scripts/stationavailability_peraccount.py` + `scripts/stationavailability_allaccount.py` (V3.1 production). For the legacy DFMG-only path, edit `scripts/dfmg_sar_availability.py`. BETA twins exist for experimental work; production stays untouched.
@@ -833,6 +835,140 @@ python3 scripts/stationavailability_peraccount.py --account DFMG --mode monthly 
 # All accounts (dry-run by default)
 python3 scripts/stationavailability_allaccount.py --mode monthly --date 2026-05
 ```
+
+---
+
+## GCIM Ticket History integration (V3.4, shipped 2026-06-27)
+
+Triggered by DFMG asking to see their Jira incident timeline inline with the
+station-availability report. Now lives in both `stationavailability_peraccount.py`
+and `stationavailability_allaccount.py`, plus the BETA twin for experimentation.
+
+### Why this exists
+
+DFMG saw the V3.3 report and asked: *"Could be nice to have the GCIM tickets in
+the same report. Incident detected, issue, ticket escalated, ticket solved."* The
+GCIM Jira project is the source of truth for customer-facing incidents — pulling
+it inline removes the click-out to Jira and gives partners a per-station
+timeline alongside the availability stats.
+
+> **Critical detail:** SiteTracker's `/v2/tickets` endpoint also carries a
+> `Ticket_Number__c` field that *should* mirror the Jira key — but only ~5% of
+> SiteTracker tickets had it populated when we audited (range frozen at
+> GCIM-50→300, nothing more recent). So we drive the integration FROM Jira, not
+> from SiteTracker. Inverse direction works reliably: every GCIM ticket has a
+> `Swift Station ID` custom field that joins to the 4-char station code.
+
+### What gets rendered
+
+**Inline on every "Uptime and downtime" row:**
+clickable `GCIM-####` link + status pill (OPEN / CLOSED / ESCAL / CANCEL / …).
+Stations with no GCIM tickets show "no incidents" — single source of truth
+across both columns of the stations grid. Bars are uniformly aligned because
+the inline cells use fixed widths (`90px 1fr 70px 200px 90px 100px`).
+
+**Bottom of report (collapsed `<details>` by default):**
+"GCIM Ticket History — `<account>`" summary header with chevron + counts.
+Click to expand. Inside: per-station blocks (one heading + table each), full
+10-column timeline:
+
+```
+Ticket │ Status │ Description │ ST # │ SKU │ Start │ Detect │ Escalated │ End │ Closed
+```
+
+- **Description** wraps in `<details>/<summary>` when over 110 chars (stripped).
+  Closed by default — partner clicks to open the ones they want to read.
+  Short descriptions render inline without a toggle.
+- Each `<tr>` has `id="gcim-row-GCIM-1097"` so the inline GCIM-# link in the
+  Uptime/Downtime section can scroll-to-it AND auto-open the parent `<details>`
+  via a tiny inline JS snippet (cross-browser; Chrome handles this natively
+  for `<details>` containing the target, Safari needs the polyfill).
+- Newest first per station (JQL `ORDER BY created DESC`, preserved by the
+  per-station grouping in `fetch_gcim_for_account`).
+- Stations with zero tickets are still listed for completeness as
+  `— no incidents —`.
+
+### Two-PNG output (peraccount only)
+
+The main PNG renders with the `<details>` section closed (height-capped at
+4000 px so the at-a-glance overview is preserved). A second
+`*_gcim.png` re-renders the same HTML with `<details>` forced open and
+`height=30000 px` so the full timeline is captured as a single image for
+partners who want it. Both are pushed to GitHub Pages by the `--publish` flow.
+
+The all-account variant generates only a single PNG (one tab per account =
+forcing every section open at once would produce an unmanageable height).
+
+### Auth — Atlassian Personal API Token
+
+The integration uses Basic auth with a classic Personal API Token:
+
+```bash
+export JIRA_USER_EMAIL=your.name@swift-nav.com
+export JIRA_API_TOKEN=<token>          # ATATT3xFfGF0…
+```
+
+**Get a token** at <https://id.atlassian.com/manage-profile/security/api-tokens>
+→ "Create API token" → label it (e.g. `stationavailability-jiraticket`) → copy
+the single string. No admin approval needed for self-issued personal tokens.
+
+We tested OAuth 2.0 Client Credentials grant against `auth.atlassian.com/oauth/token`
+on 2026-06-27 — it returned `invalid_client: failed to retrieve client`, which
+is expected: those credentials are for Atlassian Connect/JWT apps, not REST
+API token use. The classic Personal API Token is the supported path.
+
+### Custom-field discovery
+
+`BETA_gcim_helper.py` does NOT hard-code the `customfield_NNNNN` IDs — it
+discovers them on first call via `GET /rest/api/3/field`, caches the
+name→id mapping for the process lifetime, and resolves each of the 10
+expected labels:
+
+```
+Swift Station ID, Station Owner, Sitetracker Ticket Number,
+Sitetracker Ticket Link, Station Model Number / SKU, Incident Start Time,
+Incident Detect Time, Escalated to Partner, Incident End Time, Incident Closed
+```
+
+If any of them are renamed in Jira, the affected fields just render as `—` —
+the rest of the table stays intact.
+
+### Pagination — new search endpoint
+
+Atlassian deprecated `GET /rest/api/3/search` in 2025 (it now returns HTTP 410
+Gone for Cloud customers). We use the replacement
+`POST /rest/api/3/search/jql` with token-based pagination (`nextPageToken`),
+100 issues per page. DFMG's 519 tickets fetch in 6 paginated calls (~6 s).
+
+### Inputs the report exposes
+
+| ctx key | Source | Where it renders |
+|---|---|---|
+| `gcim_section_html` | `render_gcim_section_html(...)` | Body slot after `path_connection_html` |
+| `gcim_summary` (passed to `render_sar_block`) | `build_gcim_summary(...)` | Inline 5th + 6th cells in every station row |
+
+`render_station_row` (in `dfmg_availability.py`) and `render_sar_block` (in
+`dfmg_sar_availability.py`) each gained one optional kwarg with `None` default.
+When `None`, behaviour is identical to pre-V3.4 — so any code path that
+doesn't pass them stays exactly as it was.
+
+### Failure mode
+
+Jira fetch wrapped in `try/except`: missing env vars, expired token, 410/401
+from API — operators see a `[GCIM]` log line, partners see the report
+WITHOUT the new section. Nothing else breaks.
+
+### Outstanding follow-up
+
+- ~16 of DFMG's 519 GCIMs have NO `Swift Station ID` set — invisible to this
+  integration. Worth raising with whoever triages GCIM so the field gets
+  populated going forward.
+- A service-account API token (currently using Gian's personal token; valid
+  until 2026-07-27) is the proper long-term path for scheduled launchd runs.
+- The `--publish` loop currently pushes only `{base}.{html,png,csv}`; the
+  `*_gcim.{html,png}` second-PNG variant is rendered locally but not pushed
+  to Pages — partners viewing the Slack post must click the HTML link to
+  expand the GCIM section. Easy follow-up.
 
 ---
 
