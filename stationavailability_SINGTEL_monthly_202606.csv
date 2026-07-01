@@ -1,0 +1,5 @@
+site,name,country,region,sar_avail_pct,sar_up_seconds,sar_down_seconds,sar_missing_seconds,path_status,path_uptime_seconds,path_downtime_seconds,cellular_uptime_s_estimated,mdm_events,last_mdm_minutes_ago
+SGPC,SGPC0xSGP,SGP,AP,99.686,2568420,8100,16980,outage-no-cellular,2568420,8100,0,0,
+SGPH,SGPH0xSGP,SGP,AP,99.660,2567760,8760,16980,outage-no-cellular,2567760,8760,0,0,
+SGPK,SGPK0xSGP,SGP,AP,99.613,2566560,9960,16980,outage-no-cellular,2566560,9960,0,0,
+SGPY,SGPY0xSGP,SGP,AP,99.639,2567220,9300,16980,outage-no-cellular,2567220,9300,0,0,
